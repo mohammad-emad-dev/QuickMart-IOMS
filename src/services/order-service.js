@@ -1,0 +1,208 @@
+const {
+    ORDER_TYPE_SELL,
+    ORDER_TYPE_PURCHASE,
+    ROLE_STAFF,
+    ROLE_ADMIN
+} = require('../config/app-constants');
+const {
+    getAllOrders,
+    findOrderById,
+    insertOrder,
+    generateOrderId,
+    generateDetailId,
+    findProductById,
+    findStaffById
+} = require('../data/inventory-store');
+const { deriveStockStatus } = require('./product-service');
+
+function fetchStaffName(staffId) {
+    const staff = findStaffById(staffId);
+    return staff ? staff.Full_Name : 'Staff';
+}
+
+function calculateOrderTotal(items = []) {
+    return items.reduce((sum, item) => {
+        const itemTotal = item.Line_Total || (item.Ordered_Qty * item.Sold_Price);
+        return sum + itemTotal;
+    }, 0);
+}
+
+function listOrders(currentUser, queryFilters = {}) {
+    const { type, staff_id: staffFilter, date_from: dateFrom, date_to: dateTo } = queryFilters;
+    let list = [...getAllOrders()];
+
+    if (currentUser.role === ROLE_STAFF) {
+        list = list.filter(order => order.Staff_ID === currentUser.staff_id);
+    } else if (staffFilter && currentUser.role === ROLE_ADMIN) {
+        const targetStaff = String(staffFilter).toLowerCase();
+        list = list.filter(order => order.Staff_ID.toLowerCase() === targetStaff);
+    }
+
+    if (type) {
+        const targetType = String(type).toLowerCase();
+        list = list.filter(order => order.Order_Type.toLowerCase() === targetType);
+    }
+
+    if (dateFrom) {
+        const boundaryFrom = `${dateFrom} 00:00:00`;
+        list = list.filter(order => order.Order_Date >= boundaryFrom);
+    }
+
+    if (dateTo) {
+        const boundaryTo = `${dateTo} 23:59:59`;
+        list = list.filter(order => order.Order_Date <= boundaryTo);
+    }
+
+    list.sort((first, second) => second.Order_Date.localeCompare(first.Order_Date));
+
+    const formattedOrders = list.map(order => ({
+        Order_ID: order.Order_ID,
+        Staff_ID: order.Staff_ID,
+        Staff_Name: fetchStaffName(order.Staff_ID),
+        Order_Date: order.Order_Date,
+        Order_Type: order.Order_Type,
+        Party_Name: order.Party_Name,
+        Item_Count: order.items ? order.items.length : 0,
+        Total_Amount: calculateOrderTotal(order.items)
+    }));
+
+    return { orders: formattedOrders, total: formattedOrders.length };
+}
+
+function getOrderDetails(currentUser, orderId) {
+    const orderRecord = findOrderById(orderId);
+    if (!orderRecord) {
+        return { status: 'not_found' };
+    }
+
+    if (currentUser.role === ROLE_STAFF && orderRecord.Staff_ID !== currentUser.staff_id) {
+        return { status: 'forbidden' };
+    }
+
+    const items = (orderRecord.items || []).map(item => ({
+        Detail_ID: item.Detail_ID,
+        Product_ID: item.Product_ID,
+        Product_Name: item.Product_Name,
+        Product_Category: item.Product_Category,
+        Ordered_Qty: item.Ordered_Qty,
+        Sold_Price: item.Sold_Price,
+        Line_Total: item.Line_Total || (item.Ordered_Qty * item.Sold_Price)
+    }));
+
+    return {
+        status: 'ok',
+        data: {
+            order: {
+                Order_ID: orderRecord.Order_ID,
+                Staff_ID: orderRecord.Staff_ID,
+                Staff_Name: fetchStaffName(orderRecord.Staff_ID),
+                Order_Date: orderRecord.Order_Date,
+                Order_Type: orderRecord.Order_Type,
+                Party_Name: orderRecord.Party_Name
+            },
+            details: items,
+            total_amount: calculateOrderTotal(items),
+            item_count: items.length
+        }
+    };
+}
+
+function normalizeOrderType(rawType) {
+    const lower = String(rawType || '').toLowerCase();
+    if (lower === 'sell') return ORDER_TYPE_SELL;
+    if (lower === 'purchase') return ORDER_TYPE_PURCHASE;
+    return null;
+}
+
+function validateOrderStock(orderType, requestedItems) {
+    for (const item of requestedItems) {
+        const product = findProductById(item.product_id);
+        if (!product) {
+            return { isValid: false, errorMessage: `Product ${item.product_id} not found.` };
+        }
+        const quantity = parseInt(item.quantity, 10);
+        if (isNaN(quantity) || quantity <= 0) {
+            return { isValid: false, errorMessage: 'Quantity must be greater than zero.' };
+        }
+        if (orderType === ORDER_TYPE_SELL && product.Quantity < quantity) {
+            return {
+                isValid: false,
+                errorMessage: `Insufficient stock for ${product.Name}. Available: ${product.Quantity}, Requested: ${quantity}`
+            };
+        }
+    }
+    return { isValid: true };
+}
+
+function createOrderRecord(staffId, orderPayload) {
+    const { order_type: rawType, party_name: partyName, items } = orderPayload;
+    const normalizedType = normalizeOrderType(rawType);
+
+    if (!normalizedType) {
+        return { status: 'invalid_type', message: 'Order type must be "Sell" or "Purchase".' };
+    }
+
+    const stockValidation = validateOrderStock(normalizedType, items);
+    if (!stockValidation.isValid) {
+        return { status: 'validation_error', message: stockValidation.errorMessage };
+    }
+
+    const newOrderId = generateOrderId();
+    const currentDate = new Date().toISOString().replace('T', ' ').substring(0, 19);
+    const processedItems = [];
+    let grandTotal = 0;
+
+    for (const item of items) {
+        const product = findProductById(item.product_id);
+        const quantity = parseInt(item.quantity, 10);
+        const unitPrice = parseFloat(product.Price);
+        const lineTotal = quantity * unitPrice;
+        grandTotal += lineTotal;
+
+        if (normalizedType === ORDER_TYPE_SELL) {
+            product.Quantity -= quantity;
+        } else {
+            product.Quantity += quantity;
+        }
+        product.Status = deriveStockStatus(product.Quantity, product.Threshold);
+
+        processedItems.push({
+            Detail_ID: generateDetailId(),
+            Product_ID: product.Product_ID,
+            Product_Name: product.Name,
+            Product_Category: product.Category,
+            Ordered_Qty: quantity,
+            Sold_Price: unitPrice,
+            Line_Total: lineTotal
+        });
+    }
+
+    const newOrder = {
+        Order_ID: newOrderId,
+        Staff_ID: staffId,
+        Order_Date: currentDate,
+        Order_Type: normalizedType,
+        Party_Name: String(partyName).trim(),
+        items: processedItems
+    };
+
+    insertOrder(newOrder);
+
+    return {
+        status: 'created',
+        data: {
+            order_id: newOrderId,
+            staff_id: staffId,
+            order_type: normalizedType,
+            party_name: newOrder.Party_Name,
+            items: processedItems,
+            total_amount: grandTotal
+        }
+    };
+}
+
+module.exports = {
+    listOrders,
+    getOrderDetails,
+    createOrderRecord
+};
