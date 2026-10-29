@@ -2,7 +2,7 @@
 
 QuickMart keeps readable CSS and JavaScript source under `assets/` and
 checked-in production assets under `dist/`. The generated files are the
-runtime defaults used by the PHP views and login page.
+runtime defaults used by the Express views and the login page.
 
 ## Rebuild production assets
 
