@@ -1,3 +1,5 @@
+// Staff directory and profile self-service controller.
+// Administrative actions require Admin privileges; profile and password updates are scoped to the user.
 const express = require('express');
 const { sendSuccess, sendError } = require('../utils/api-response');
 const { requireAuthenticatedUser, requireRole } = require('../middleware/session-middleware');
@@ -14,11 +16,13 @@ const {
 
 const router = express.Router();
 
+// Administrative directory listing showing all staff members and their roles
 router.get('/list.php', requireRole(ROLE_ADMIN), (request, response) => {
     const directory = listStaffDirectory();
     sendSuccess(response, directory);
 });
 
+// Profile retrieval allowed for administrators or the account owner
 router.get('/get.php', requireAuthenticatedUser, (request, response) => {
     const { id } = request.query;
     if (!id) {
@@ -38,6 +42,7 @@ router.get('/get.php', requireAuthenticatedUser, (request, response) => {
     sendSuccess(response, profile);
 });
 
+// Admin endpoint to provision a new staff account with an initial password
 router.post('/create.php', requireRole(ROLE_ADMIN), (request, response) => {
     const { full_name, email, phone_number, role, password } = request.body || {};
     if (!full_name || !email || !phone_number || !role || !password) {
@@ -52,6 +57,7 @@ router.post('/create.php', requireRole(ROLE_ADMIN), (request, response) => {
     sendSuccess(response, outcome.staff, 'Staff member created successfully');
 });
 
+// Admin endpoint to edit user roles, contact information, or names
 router.post('/update.php', requireRole(ROLE_ADMIN), (request, response) => {
     const { staff_id, full_name, email, phone_number, role } = request.body || {};
     if (!staff_id) {
@@ -69,6 +75,7 @@ router.post('/update.php', requireRole(ROLE_ADMIN), (request, response) => {
     sendSuccess(response, outcome.staff, 'Staff member updated successfully');
 });
 
+// Admin endpoint to remove staff accounts, blocked if orders or self-deletion are involved
 router.post('/delete.php', requireRole(ROLE_ADMIN), (request, response) => {
     const targetId = request.body && request.body.staff_id;
     if (!targetId) {
@@ -89,6 +96,7 @@ router.post('/delete.php', requireRole(ROLE_ADMIN), (request, response) => {
     sendSuccess(response, null, 'Staff member deleted successfully');
 });
 
+// Allows any authenticated user to update their own contact details and sync the session
 router.post('/update-profile.php', requireAuthenticatedUser, (request, response) => {
     const { full_name, email, phone_number } = request.body || {};
     const outcome = updateSelfProfile(request.session.user.staff_id, { full_name, email, phone_number });
@@ -106,6 +114,7 @@ router.post('/update-profile.php', requireAuthenticatedUser, (request, response)
     sendSuccess(response, outcome.profile, 'Profile updated successfully');
 });
 
+// Allows any authenticated user to change their password after verifying their current one
 router.post('/change-password.php', requireAuthenticatedUser, (request, response) => {
     const { current_password, new_password } = request.body || {};
     if (!current_password || !new_password) {

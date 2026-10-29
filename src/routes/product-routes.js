@@ -1,3 +1,5 @@
+// Product catalog endpoints for searching, creating, editing, and deleting inventory items.
+// Creation and updates require Manager or Admin rights; deletion is strictly Admin-only.
 const express = require('express');
 const { sendSuccess, sendError } = require('../utils/api-response');
 const { requireAuthenticatedUser, requireRole } = require('../middleware/session-middleware');
@@ -32,6 +34,7 @@ router.get('/get.php', requireAuthenticatedUser, (request, response) => {
     sendSuccess(response, product);
 });
 
+// Adding new catalog items requires at least Manager privileges
 router.post('/create.php', requireRole([ROLE_ADMIN, ROLE_MANAGER]), (request, response) => {
     const { name, category, quantity, price, threshold } = request.body || {};
     if (!name || !category || quantity === undefined || price === undefined || threshold === undefined) {
@@ -42,6 +45,7 @@ router.post('/create.php', requireRole([ROLE_ADMIN, ROLE_MANAGER]), (request, re
     sendSuccess(response, created, 'Product created successfully');
 });
 
+// Modifying pricing, quantity, or category requires at least Manager privileges
 router.put('/update.php', requireRole([ROLE_ADMIN, ROLE_MANAGER]), (request, response) => {
     const { id, product_id, name, category, quantity, price, threshold } = request.body || {};
     const targetId = id || product_id;
@@ -57,6 +61,7 @@ router.put('/update.php', requireRole([ROLE_ADMIN, ROLE_MANAGER]), (request, res
     sendSuccess(response, updated, 'Product updated successfully');
 });
 
+// router.all supports both DELETE and POST forms sent by legacy client scripts
 router.all('/delete.php', requireRole(ROLE_ADMIN), (request, response) => {
     const targetId = request.query.id || (request.body && (request.body.id || request.body.product_id));
     if (!targetId) {

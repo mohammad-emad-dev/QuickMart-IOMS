@@ -1,3 +1,6 @@
+// Order creation and transaction logic.
+// Validates available inventory before sell orders, updates quantities atomically,
+// and enforces role-based access rules for order history visibility.
 const {
     ORDER_TYPE_SELL,
     ORDER_TYPE_PURCHASE,
@@ -27,6 +30,7 @@ function calculateOrderTotal(items = []) {
     }, 0);
 }
 
+// Applies role segregation: staff only see their own orders, while managers and admins see all
 function listOrders(currentUser, queryFilters = {}) {
     const { type, staff_id: staffFilter, date_from: dateFrom, date_to: dateTo } = queryFilters;
     let list = [...getAllOrders()];
@@ -75,6 +79,7 @@ function getOrderDetails(currentUser, orderId) {
         return { status: 'not_found' };
     }
 
+    // Restrict staff users from inspecting orders created by colleagues
     if (currentUser.role === ROLE_STAFF && orderRecord.Staff_ID !== currentUser.staff_id) {
         return { status: 'forbidden' };
     }
@@ -114,6 +119,7 @@ function normalizeOrderType(rawType) {
     return null;
 }
 
+// Pre-validates all order lines before mutating stock to prevent partial writes
 function validateOrderStock(orderType, requestedItems) {
     for (const item of requestedItems) {
         const product = findProductById(item.product_id);
@@ -152,6 +158,7 @@ function createOrderRecord(staffId, orderPayload) {
     const processedItems = [];
     let grandTotal = 0;
 
+    // Deduct stock for sell orders or replenish stock for purchases, then capture line items
     for (const item of items) {
         const product = findProductById(item.product_id);
         const quantity = parseInt(item.quantity, 10);

@@ -1,3 +1,5 @@
+// Browser script minification pipeline. Bundles and compresses page scripts
+// while preserving global declarations needed by inline DOM event handlers.
 const fs = require('node:fs');
 const path = require('node:path');
 const Terser = require('terser');

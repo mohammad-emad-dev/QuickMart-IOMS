@@ -1,3 +1,5 @@
+// Authentication endpoints for sign-in, session queries, and token generation.
+// Enforces rate limiting on login to defend against automated credential stuffing.
 const express = require('express');
 const { sendSuccess, sendError } = require('../utils/api-response');
 const { evaluateRateLimit, clearRateLimit } = require('../middleware/rate-limiter');
@@ -23,6 +25,7 @@ router.get('/session.php', requireAuthenticatedUser, (request, response) => {
     });
 });
 
+// Authenticates credentials and rotates CSRF token upon successful sign-in
 router.post('/login.php', (request, response) => {
     const { email, password } = request.body || {};
 
@@ -53,12 +56,14 @@ router.post('/login.php', (request, response) => {
     }, 'Login successful');
 });
 
+// Clears user identity from the session and removes the client cookie
 router.post('/logout.php', (request, response) => {
     request.session.user = null;
     response.clearCookie('qm_session_id');
     sendSuccess(response, null, 'Logged out successfully');
 });
 
+// Self-service password recovery is disabled; administrative assistance is required
 router.post('/forgot_password.php', (request, response) => {
     sendError(response, 'Password reset is currently unavailable. Please contact a system administrator.', 503);
 });

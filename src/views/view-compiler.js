@@ -1,3 +1,5 @@
+// HTML view compilation and in-memory template cache.
+// Assembles partials into full RTL pages at boot to eliminate disk reads during request handling.
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -8,6 +10,7 @@ function readViewPartial(relativeFilePath) {
     return fs.readFileSync(fullPath, 'utf8');
 }
 
+// Strips legacy PHP tags from navigation markup so it renders cleanly as static HTML
 function extractCleanNavMarkup() {
     const rawNav = readViewPartial('backend/views/partials/shell-nav.php');
     return rawNav.replace(/<\?php[\s\S]*?\?>/g, '').trim();
@@ -120,8 +123,7 @@ ${scripts}`;
 
 function compileOrdersView(shellNav) {
     const head = renderDocumentHead('QuickMart IOMS - Orders', 'QuickMart IOMS - Orders Management', 'width=device-width, initial-scale=1.0', ['../../dist/css/dashboard.min.css?v=ui10', '../../dist/css/orders.min.css?v=ui12', '../../dist/css/common.min.css?v=ui12']);
-    const rawOrders = readViewPartial('backend/views/orders.php');
-    const bodyContent = rawOrders.replace(/<\?php[\s\S]*?\?>/g, '').replace(/<!DOCTYPE html>[\s\S]*?<body[^>]*>/, '').replace(/<\/body>[\s\S]*?<\/html>/, '').trim();
+    const bodyContent = readViewPartial('backend/views/partials/orders/workspace.html');
     const scripts = renderScriptLoaderTag('../../dist/js/orders.min.js');
     return `${head}
 <body class="orders-page">
@@ -151,8 +153,7 @@ ${scripts}`;
 
 function compileOrderDetailsView(shellNav) {
     const head = renderDocumentHead('QuickMart IOMS - Order Details', 'QuickMart IOMS - Order Details', 'width=device-width, initial-scale=1.0', ['../../dist/css/dashboard.min.css?v=ui10', '../../dist/css/order-details.min.css?v=print01', '../../dist/css/common.min.css?v=ui12']);
-    const rawDetails = readViewPartial('backend/views/order-details.php');
-    const bodyContent = rawDetails.replace(/<\?php[\s\S]*?\?>/g, '').replace(/<!DOCTYPE html>[\s\S]*?<body[^>]*>/, '').replace(/<\/body>[\s\S]*?<\/html>/, '').trim();
+    const bodyContent = readViewPartial('backend/views/partials/order-details/workspace.html');
     const scripts = renderScriptLoaderTag('../../dist/js/order-details.min.js');
     return `${head}
 <body class="order-details-page">
@@ -237,6 +238,7 @@ function compileProfileView(shellNav) {
 ${scripts}`;
 }
 
+// Pre-renders every application workspace into memory on server boot
 function buildViewCache() {
     const shellNav = extractCleanNavMarkup();
     const cacheMap = new Map();

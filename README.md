@@ -2,539 +2,324 @@
 
 ## Engineering README
 
-QuickMart IOMS is a server-rendered inventory and order-management system for
-retail operations. It is implemented with PHP, MariaDB, PDO, vanilla
-JavaScript, CSS, and Apache.
+QuickMart IOMS is a secure, responsive inventory and order-management system for retail operations. It features an RTL-first operations console with Arabic-friendly typography, dark theme tokens, live inventory health tracking, and transactional order workflows.
 
-This document describes the system as it exists in the repository. It is an
-engineering handoff document, not a product brochure. The backend is the
-authority for authentication, authorization, inventory, prices, totals, order
-history, and role policy. The browser is responsible for presentation and user
-interaction only.
+The system is implemented as a **Node.js / Express** application following **Clean Architecture** principles, with in-memory persistence, server-authoritative role-based access control (RBAC), and a reproducible frontend build pipeline.
 
-## Engineering stance
+---
 
-- Preserve backend authority. The client must not derive or override prices,
-  totals, stock, order IDs, roles, or account state.
-- Keep business rules in application services, repositories, and the database;
-  PHP views compose presentation only.
-- Prefer explicit validation, transactions, prepared statements, and clear
-  failure handling over implicit framework behavior.
-- Keep the current procedural/global PHP architecture compatible. Composer is a
-  small bootstrap aid, not a reason to perform an unreviewed namespace
-  migration.
-- Use isolated databases for destructive verification. Do not use the runtime
-  database as a test fixture.
+## Engineering Stance & Principles
 
-The UI is an RTL-first operations console with Arabic-friendly typography,
-explicit inventory states, and responsive layouts. Visual design is subordinate
-to operational clarity and accessibility.
+- **Server-Authoritative Operations**: The backend is the sole authority for authentication, authorization, inventory counts, unit prices, line totals, order identifiers, and role policies. The browser handles presentation and user interaction only.
+- **Clean Architecture & Separation of Concerns**:
+  - **Routes** handle HTTP parameter extraction and response statuses.
+  - **Services** enforce domain invariants (e.g. stock availability on Sell orders, foreign-key reference integrity, and role constraints).
+  - **Store / Repositories** manage state and atomic sequence generators.
+  - **Views** pre-compile and cache HTML shells at startup to eliminate disk I/O at runtime.
+- **Defense in Depth**: Strict validation at trust boundaries, rate-limited login attempts, session-bound CSRF token rotation, and HTTP-only session cookies.
+- **Zero External Runtime Dependencies for UI**: Bootstrap 5.3.0, Poppins fonts, and SVG icons are self-hosted and compiled locally. The application works offline and in restricted network environments without third-party CDN calls.
 
-## Current capabilities
+---
 
-- Product catalog and inventory tracking with normal, low-stock, and out-of-stock states.
-- Sell orders with transactional stock deduction and insufficient-stock protection.
-- Purchase orders with transactional stock replenishment.
-- Historical order details using the price stored at the time of the order.
-- Role-based access for `Admin`, `Manager`, and `Staff`.
-- Admin-only staff management and reporting.
-- Authenticated user profile and password management.
-- Dashboard inventory health, recent orders, order details, and report summaries.
-- CSRF protection, password hashing, prepared SQL statements, foreign-key integrity, and session revalidation.
+## Current Capabilities
 
-Admin-only staff creation is available through the Staff Create API. The staff-management contract also supports listing, viewing, updating, deleting, profile updates, and password changes.
+- **Product Catalog & Inventory**:
+  - Live inventory registers with `Normal`, `Low Stock`, and `Out of Stock` semantic states.
+  - Dynamic categorization, search filtering, and CSV export.
+  - Administrative creation, editing, and reference-checked deletion.
+- **Order Management**:
+  - **Sell Orders**: Guided multi-item intake with real-time stock validation, automated inventory deduction, and insufficient-stock protection.
+  - **Purchase Orders**: Stock replenishment workflows with automatic status updates.
+  - **Immutable History**: Historical order inspection using stored line prices rather than floating catalog prices.
+  - Clean A4 portrait printable invoice views.
+- **Role-Based Access Control (RBAC)**:
+  - `Admin`: Global visibility, catalog management, staff management, and operational KPI reporting.
+  - `Manager`: Catalog mutations, store operations, and order placement.
+  - `Staff`: Restricted view of assigned orders, self-service profile management, and order placement.
+- **Staff & Account Security**:
+  - Administrative staff directory with duplicate-email prevention and order-history deletion guards.
+  - Self-service profile updates and password changes with Bcrypt encryption.
+  - One-way windowed rate limiting on authentication attempts (`Retry-After: 900`).
 
-## Technology stack
+---
 
-- PHP 8.0+
-- MariaDB 10.4+ with InnoDB transactions
-- PDO for database access
-- Vanilla JavaScript and CSS
-- Apache through XAMPP or an equivalent PHP web-server setup
-- Composer 2 for generating the production autoload metadata
-- Node.js/npm for reproducible production CSS and JavaScript builds; runtime Bootstrap and Poppins assets are self-hosted
+## Technology Stack
 
-## Runtime architecture
+- **Runtime**: Node.js 22 (LTS)
+- **Application Server**: Express 5
+- **Security & Cryptography**: `bcryptjs`, `cookie-parser`, native `node:crypto`
+- **Frontend**: Vanilla JavaScript (ES6+), local Bootstrap 5.3.0 bundle, custom CSS tokens
+- **Build Pipeline**: `clean-css` for CSS optimization, `terser` for JavaScript minification
+- **Schema & Reference Models**: MariaDB/PostgreSQL-compatible relational schema definitions (`database/schema.sql`, `database/data.sql`)
 
-The application has three deliberate boundaries:
+---
 
-1. PHP views render protected screens and load the shared shell.
-2. JSON API entry points authenticate and validate requests before invoking
-   application services.
-3. Repositories are the database boundary. MariaDB constraints and
-   transactions protect inventory and historical order data.
-
-### Diagram 1: request and execution path
+## Runtime Architecture
 
 ```mermaid
 flowchart LR
     browser["Browser<br/>RTL UI + local dist assets"]
-    views["PHP views<br/>shared shell + partials"]
-    api["API entry points<br/>JSON + security headers"]
-    bootstrap["Bootstrap<br/>config + helpers + PDO"]
-    guards["Session / CSRF / role guards"]
-    services["Application services<br/>business operations"]
-    repos["Repositories<br/>parameterized SQL"]
-    db[("MariaDB<br/>InnoDB")]
+    routes["Express Routers<br/>View & API Routes"]
+    middleware["Middleware Layer<br/>Session, CSRF, Rate Limiting, Headers"]
+    services["Application Services<br/>Auth, Products, Orders, Reports, Staff"]
+    store[("In-Memory Store<br/>Seeded Repositories & State")]
+    views["View Compiler<br/>Pre-cached HTML View Shells"]
 
-    browser -->|HTML navigation| views
-    browser -->|same-origin JSON| api
-    views -->|protected-page guard| guards
-    api --> bootstrap
-    views --> bootstrap
-    bootstrap --> guards
-    guards --> services
-    services --> repos
-    repos --> db
-    db --> repos
-    repos --> services
-    services --> api
-    api -->|JSON response| browser
+    browser -->|HTML Navigation| routes
+    browser -->|JSON API Requests| routes
+    routes --> middleware
+    routes --> views
+    middleware --> services
+    services --> store
+    store --> services
+    services --> routes
+    routes -->|JSON Envelope| browser
+    views -->|Compiled HTML| browser
 ```
 
-`backend/bootstrap.php` loads the optional Composer autoloader and then the
-legacy configuration and helper files in deterministic order. API entry points
-continue through `backend/api/bootstrap.php`, which adds the database handle,
-JSON content type, and baseline security headers. Existing view entry points
-retain their protected-view include conventions.
+---
 
-The frontend uses the shared `apiFetch` boundary and server-authoritative
-session probing. `sessionStorage` can cache display hints after a successful
-probe, but it never grants authentication or role access.
-
-## Project structure
+## Project Structure
 
 ```text
-QuickMart-IOMS-main/
-├── assets/
-│   ├── common.css              # Shared design tokens and application shell
-│   ├── common.js               # Shared frontend utilities and apiFetch
-│   ├── dashboard/              # Dashboard styles and behavior
-│   ├── products/               # Product page styles and behavior
-│   ├── orders/                 # Order list and creation behavior
-│   ├── create-order/           # Order creation assets
-│   ├── order-details/          # Order detail assets
-│   ├── reports/                # Reporting assets
-│   ├── staff/                  # Staff management assets
-│   ├── profile/                # Profile assets
-│   ├── fonts/                  # Self-hosted Poppins subsets and license
-│   ├── vendor/bootstrap/       # Bootstrap 5.3.0 local CSS/JS bundle
-│   └── login-signup/           # Login assets
-├── dist/css/                   # Generated production CSS
-├── dist/js/                    # Generated production JavaScript
-├── scripts/build-css.js        # Reproducible CSS minification entrypoint
-├── scripts/build-js.js         # Reproducible JavaScript minification entrypoint
-├── backend/
-│   ├── bootstrap.php             # Composer-aware application bootstrap with local fallback
-│   ├── api/                    # JSON API endpoints
-│   ├── application/            # Application services
-│   ├── core/                   # Configuration, database, auth, and helpers
-│   ├── infrastructure/        # Repository implementations
-│   └── views/                  # Protected PHP views and shared shell partials
+QuickMart-IOMS/
+├── server.js                           # Application entrypoint & HTTP server bootstrap
+├── src/
+│   ├── app.js                          # Express application factory & middleware setup
+│   ├── config/
+│   │   └── app-constants.js            # System roles, order types, statuses & rate limits
+│   ├── data/
+│   │   └── inventory-store.js          # In-memory entity repository & sequence generators
+│   ├── middleware/
+│   │   ├── rate-limiter.js             # Windowed login attempt throttling
+│   │   ├── security-headers.js         # Security headers (nosniff, DENY, same-origin)
+│   │   └── session-middleware.js       # Cookie session resolution & RBAC route guards
+│   ├── routes/
+│   │   ├── auth-routes.js              # Session probe, CSRF, login, and logout endpoints
+│   │   ├── order-routes.js             # Order listing, details, and placement endpoints
+│   │   ├── product-routes.js           # Catalog retrieval, creation, update, and deletion
+│   │   ├── report-routes.js            # Operational KPI reporting (Admin-only)
+│   │   ├── staff-routes.js             # Staff directory, profile, and password management
+│   │   └── view-routes.js              # Protected HTML view delivery & 403 access gates
+│   ├── services/
+│   │   ├── auth-service.js             # Credential verification & CSRF token generator
+│   │   ├── order-service.js            # Stock verification, pricing, and transactional order logic
+│   │   ├── product-service.js          # Stock status derivation & catalog reference integrity
+│   │   ├── report-service.js           # Category, monthly trend, and top-product aggregations
+│   │   └── staff-service.js            # Profile updates, password hashing, and user deletion guards
+│   ├── utils/
+│   │   └── api-response.js             # Standardized API response envelopes
+│   └── views/
+│       └── view-compiler.js            # Startup view compilation & memory pre-caching
+├── assets/                             # Source stylesheets, client scripts, icons, fonts
+│   ├── common.css                      # Core design tokens and shell styles
+│   ├── common.js                       # Client-side session probe and apiFetch helper
+│   ├── fonts/                          # Self-hosted Poppins font subsets
+│   ├── login-signup/                   # Sign-in page markup and interaction logic
+│   └── vendor/bootstrap/               # Self-hosted Bootstrap 5.3.0 bundle
+├── backend/views/partials/             # Component HTML partials compiled by view-compiler
+│   ├── create-order/                   # Order creation step partials
+│   ├── dashboard/                      # Overview and activity widget partials
+│   ├── order-details/                  # Order details invoice template
+│   ├── orders/                         # Order register and filter partials
+│   ├── products/                       # Catalog overview and table partials
+│   ├── profile/                        # Account profile and settings partials
+│   ├── reports/                        # Report summaries, charts, and metrics partials
+│   ├── shell-nav.php                   # Shared primary navigation bar
+│   └── staff/                          # Staff directory and dialog partials
 ├── database/
-│   ├── schema.sql              # Current baseline schema
-│   ├── data.sql                # Optional disposable demo data
-│   └── migrations/             # Incremental migrations 001 through 006
-├── .env.example               # Environment variable names only
-├── composer.json                # PHP requirement and narrow legacy classmap
-├── package.json                # Pinned frontend build tool
-├── package-lock.json           # npm dependency lockfile
-├── index.php                  # Application entry point
-└── README.md
+│   ├── schema.sql                      # Baseline relational database schema
+│   └── data.sql                        # Reference initial seed data
+├── dist/                               # Minified production CSS and JavaScript outputs
+├── scripts/
+│   ├── build-css.js                    # Production CSS compilation script (clean-css)
+│   └── build-js.js                     # Production JavaScript compilation script (terser)
+├── index.html                          # Root redirect and OpenGraph entrypoint
+├── metadata.json                       # Applet configuration and permissions
+├── package.json                        # Dependencies, build, and validation scripts
+└── README.md                           # Project engineering documentation
 ```
 
-## Local setup with XAMPP
+---
+
+## Getting Started
 
 ### Prerequisites
 
-- XAMPP or an equivalent Apache/PHP/MariaDB environment.
-- PHP 8.0 or newer.
-- MariaDB 10.4 or newer.
-- A modern browser.
+- **Node.js**: v22.x or newer
+- **npm**: v10.x or newer
 
-### 1. Clone the repository
+### Installation
 
-```bash
-git clone https://github.com/mohammad-emad-dev/QuickMart-IOMS.git
+1. Install project dependencies:
+
+   ```bash
+   npm install
+   ```
+
+2. Build production assets:
+
+   ```bash
+   npm run build
+   ```
+
+   This executes `scripts/build-css.js` and `scripts/build-js.js`, compiling readable assets from `assets/` into optimized production files in `dist/`.
+
+### Running the Application
+
+- **Development Server**:
+
+  ```bash
+  npm run dev
+  ```
+
+  Starts the application on `http://0.0.0.0:3000`.
+
+- **Production Server**:
+
+  ```bash
+  npm start
+  ```
+
+- **Code Validation & Linting**:
+
+  ```bash
+  npm run lint
+  ```
+
+  Performs syntax verification across `server.js`, `src/**/*.js`, and `scripts/*.js`.
+
+---
+
+## Seed Accounts & Roles
+
+The system is pre-seeded with sample operational accounts:
+
+| Identifier / Email | Role | Default Password | Permissions |
+| --- | --- | --- | --- |
+| `admin@quickmart.com` (`STF001`) | `Admin` | `admin123` | Full access, staff management, reports, all orders, catalog |
+| `manager@quickmart.com` (`STF002`) | `Manager` | `admin123` | Catalog creation/editing, order placement, order history |
+| `staff@quickmart.com` (`STF003`) | `Staff` | `admin123` | Assigned order history, order creation, own profile settings |
+
+*Note: Seed accounts are for demonstration and testing. Rotate all passwords prior to production deployment.*
+
+---
+
+## API Surface
+
+All API endpoints return JSON conforming to the standardized envelope:
+
+```json
+{
+  "success": true,
+  "message": "Success",
+  "data": { ... }
+}
 ```
 
-For the default Windows XAMPP layout, place the project at:
+### 1. Authentication (`/backend/api/auth`)
 
-```text
-C:\xampp\htdocs\QuickMart-IOMS-main
-```
+| Method | Endpoint | Authorization | Purpose |
+| --- | --- | --- | --- |
+| `GET` | `/csrf.php` | Public | Returns the session-bound CSRF token. |
+| `GET` | `/session.php` | Authenticated | Validates session and returns current staff identity. |
+| `POST` | `/login.php` | Public | Authenticates credentials and issues session cookie. |
+| `POST` | `/logout.php` | Authenticated | Clears session data and invalidates cookie. |
+| `POST` | `/forgot_password.php` | Public | Returns HTTP 503 until an approved delivery service is configured. |
 
-### 2. Generate the Composer autoloader
+### 2. Products (`/backend/api/products`)
 
-The application has no third-party Composer dependency. For staging and production, generate the optimized autoloader from the repository root and do not commit the generated `vendor/` directory:
+| Method | Endpoint | Authorization | Purpose |
+| --- | --- | --- | --- |
+| `GET` | `/list.php` | Authenticated | Returns products filtered by `category`, `status`, or `search`. |
+| `GET` | `/get.php?id={id}` | Authenticated | Retrieves a single product by `Product_ID`. |
+| `POST` | `/create.php` | Admin, Manager | Creates a new product and recalculates status. |
+| `PUT` | `/update.php` | Admin, Manager | Updates existing product details and threshold status. |
+| `ALL` | `/delete.php` | Admin | Deletes a product (blocked if referenced in order history). |
 
-```powershell
-composer install --no-dev --optimize-autoloader
-```
+### 3. Orders (`/backend/api/orders`)
 
-All PHP entrypoints converge on `backend/bootstrap.php`. It loads `vendor/autoload.php` when present and otherwise uses the verified procedural fallback, which keeps local XAMPP development working without Composer. The current codebase remains global/procedural; no PSR-4 namespace migration is implied.
+| Method | Endpoint | Authorization | Purpose |
+| --- | --- | --- | --- |
+| `GET` | `/list.php` | Authenticated | Lists orders. Filterable by `type`, `staff_id`, `date_from`, `date_to`. Staff role is restricted to own orders. |
+| `GET` | `/get.php?id={id}` | Authenticated | Retrieves order header and line items with historical stored prices. |
+| `POST` | `/create.php` | Authenticated | Creates a sell or purchase order transactionally and updates stock. |
 
-### 3. Build the frontend assets
+### 4. Staff Management (`/backend/api/staff`)
 
-From the repository root, install the pinned build tools and regenerate the
-production CSS and JavaScript before serving the application:
+| Method | Endpoint | Authorization | Purpose |
+| --- | --- | --- | --- |
+| `GET` | `/list.php` | Admin | Lists all staff members without exposing passwords. |
+| `GET` | `/get.php?id={id}` | Authenticated | Reads a permitted staff record (Admin or self). |
+| `POST` | `/create.php` | Admin | Creates a staff account with encrypted password. |
+| `POST` | `/update.php` | Admin | Updates staff details and roles. |
+| `POST` | `/delete.php` | Admin | Deletes a staff account (blocked if user has order records or self). |
+| `POST` | `/update-profile.php` | Authenticated | Updates the current authenticated user's profile. |
+| `POST` | `/change-password.php` | Authenticated | Changes password after validating current password. |
 
-```text
-npm ci
-npm run build
-```
+### 5. Reporting (`/backend/api/reports`)
 
-Readable CSS and JavaScript remain under `assets/`; the PHP views and login
-page load generated `dist/css/*.min.css` and `dist/js/*.min.js` files.
-Bootstrap `5.3.0`, the Poppins Latin weights used by Create Order, and the
-project JavaScript outputs are local, so reviewed pages do not depend on a CDN
-at runtime. See
-[docs/FRONTEND-BUILD.md](docs/FRONTEND-BUILD.md) for asset ownership and font
-license details.
+| Method | Endpoint | Authorization | Purpose |
+| --- | --- | --- | --- |
+| `GET` | `/stats.php` | Admin | Aggregates summary KPIs, category distributions, recent orders, top products, and monthly trends. |
 
-### 4. Configure the database connection
+---
 
-The application does not read a `.env` file. Configure these variables through Apache `SetEnv`, Windows environment variables, or the PHP runtime. Use `.env.example` as the variable-name reference:
-
-```text
-QUICKMART_DB_HOST
-QUICKMART_DB_NAME
-QUICKMART_DB_USER
-QUICKMART_DB_PASSWORD
-QUICKMART_ALLOWED_ORIGIN
-QUICKMART_RATE_LIMIT_SECRET
-```
-
-`QUICKMART_RATE_LIMIT_SECRET` is optional for local development and should be a high-entropy deployment secret in production. It protects the one-way login limiter keys from offline correlation. Never commit a real password or other secret. `QUICKMART_ALLOWED_ORIGIN` may remain empty for a same-origin local deployment.
-
-### 4. Create the database
-
-Import the current baseline schema into a disposable local database:
-
-```sql
-SOURCE /path/to/QuickMart-IOMS-main/database/schema.sql;
-```
-
-Optional demo data can be imported afterward:
-
-```sql
-SOURCE /path/to/QuickMart-IOMS-main/database/data.sql;
-```
-
-The demo data is for local testing only. Rotate or replace seeded credentials before using the application in any shared environment.
-
-For an existing database that predates the current baseline, review and apply migrations `001` through `006` in order using the project’s migration process. Migration `006` creates the persistent login-attempt limiter table. Do not apply migrations blindly to a production database.
-
-### 5. Backup and restore
-
-Create a logical backup before applying migrations or deploying. Use a least-privilege database account for shared or production environments and keep the dump outside the repository:
-
-```powershell
-mysqldump -u <database_user> -p quickmart_db > quickmart_db_backup.sql
-```
-
-Restore only to a verified target, preferably a disposable database first:
-
-```powershell
-mysql -u <database_user> -p quickmart_db < quickmart_db_backup.sql
-```
-
-Pause writes during a production restore, verify foreign keys and row counts afterward, and never commit backup files or database credentials. The tracked `.htaccess` database fallback is for local XAMPP review only; production deployments must provide the `QUICKMART_*` values through server environment configuration.
-
-### 6. Start the application
-
-Start Apache and MariaDB from the XAMPP Control Panel, then open:
-
-```text
-http://localhost/QuickMart-IOMS-main/
-```
-
-Useful direct review pages include:
-
-```text
-http://localhost/QuickMart-IOMS-main/assets/login-signup/login.html
-http://localhost/QuickMart-IOMS-main/backend/views/dashboard.php
-```
-
-Default account credentials are intentionally not documented. Use disposable local seed data or provision accounts through an approved administrative process.
-
-For the complete staging and production handoff runbook, see [docs/PRODUCTION-HANDOFF.md](docs/PRODUCTION-HANDOFF.md).
-
-## Roles and access
-
-The database accepts exactly these roles:
-
-| Role | Access summary |
-| --- | --- |
-| `Admin` | Full administrative access, staff management, all orders, and reports. |
-| `Manager` | Authenticated operational access permitted by each endpoint; no Admin-only staff or report access. |
-| `Staff` | Authenticated operational access permitted by each endpoint, including own profile/password and owned orders; no Admin-only staff or report access. |
-
-The backend is authoritative for authorization. Client-side role hints are used only to shape the interface and never grant access.
-
-## API surface
-
-All API responses use the project’s JSON response helpers and the existing `{ "success": true, "data": ... }` success shape where applicable.
-
-### Authentication
-
-| Method | Endpoint | Purpose |
-| --- | --- | --- |
-| `POST` | `backend/api/auth/login.php` | Authenticate a staff member. |
-| `POST` | `backend/api/auth/logout.php` | End the current session. |
-| `GET` | `backend/api/auth/csrf.php` | Return the authenticated session CSRF token. |
-| `GET` | `backend/api/auth/session.php` | Revalidate the server-side session and return safe UI identity data. |
-| `POST` | `backend/api/auth/forgot_password.php` | Intentionally disabled with HTTP 503 until secure delivery is available. |
-
-### Products
-
-| Method | Endpoint | Purpose |
-| --- | --- | --- |
-| `GET` | `backend/api/products/list.php` | List products. |
-| `GET` | `backend/api/products/get.php?id=...` | Read one product. |
-| `POST` | `backend/api/products/create.php` | Create a product where authorized. |
-| `PUT` | `backend/api/products/update.php` | Update a product where authorized. |
-| `DELETE` | `backend/api/products/delete.php` | Delete a product where authorized. |
-
-### Orders
-
-| Method | Endpoint | Purpose |
-| --- | --- | --- |
-| `GET` | `backend/api/orders/list.php` | List authorized orders with existing filters. |
-| `GET` | `backend/api/orders/get.php?id=...` | Read an authorized order and its stored detail prices. |
-| `POST` | `backend/api/orders/create.php` | Create a sell or purchase order transactionally. |
-
-### Staff
-
-| Method | Endpoint | Purpose |
-| --- | --- | --- |
-| `GET` | `backend/api/staff/list.php` | Admin-only staff list. |
-| `GET` | `backend/api/staff/get.php?id=...` | Read a permitted staff record. |
-| `POST` | `backend/api/staff/create.php` | Admin-only creation of a staff account with an initial password. |
-| `POST` | `backend/api/staff/update.php` | Admin-only staff update. |
-| `POST` | `backend/api/staff/delete.php` | Admin-only staff deletion with order-history protection. |
-| `POST` | `backend/api/staff/update-profile.php` | Update the authenticated user’s profile. |
-| `POST` | `backend/api/staff/change-password.php` | Change the authenticated user’s password. |
-
-### Reports
-
-| Method | Endpoint | Purpose |
-| --- | --- | --- |
-| `GET` | `backend/api/reports/stats.php` | Admin-only dashboard and reporting metrics. |
-
-## Database and migration notes
-
-The database is MariaDB using InnoDB. Referential integrity, check constraints,
-unique keys, row locks, and transactions are part of the application contract.
-
-### Diagram 2: relational model
+## Relational Entity Model
 
 ```mermaid
 erDiagram
     STAFF ||--o{ ORDERS : creates
-    STAFF ||--o{ PASSWORD_RESET_TOKENS : owns
     ORDERS ||--|{ ORDER_DETAILS : contains
     PRODUCTS ||--o{ ORDER_DETAILS : referenced_by
 
     STAFF {
-        varchar Staff_ID PK
-        varchar Full_Name
-        varchar Email UK
-        varchar Password
-        varchar Phone_Number
-        varchar Role
+        string Staff_ID PK
+        string Full_Name
+        string Email UK
+        string Password
+        string Phone_Number
+        string Role
         int Auth_Revision
     }
     PRODUCTS {
-        varchar Product_ID PK
-        varchar Name
-        varchar Category
+        string Product_ID PK
+        string Name
+        string Category
         int Quantity
         decimal Price
-        varchar Status
+        string Status
         int Threshold
     }
     ORDERS {
-        varchar Order_ID PK
-        varchar Staff_ID FK
+        string Order_ID PK
+        string Staff_ID FK
         datetime Order_Date
-        varchar Order_Type
-        varchar Party_Name
+        string Order_Type
+        string Party_Name
     }
     ORDER_DETAILS {
         int Detail_ID PK
-        varchar Order_ID FK
-        varchar Product_ID FK
+        string Order_ID FK
+        string Product_ID FK
         int Ordered_Qty
         decimal Sold_Price
     }
-    PASSWORD_RESET_TOKENS {
-        bigint Reset_ID PK
-        varchar Staff_ID FK
-        char Token_Hash UK
-        datetime Expires_At
-        datetime Used_At
-        datetime Revoked_At
-        datetime Created_At
-    }
-    LOGIN_RATE_LIMITS {
-        char Rate_Key PK
-        datetime Window_Started_At
-        smallint Attempt_Count
-        datetime Last_Attempt_At
-    }
 ```
 
-`LOGIN_RATE_LIMITS` is intentionally independent of `STAFF`: it must also
-handle unknown identifiers without exposing account existence.
+---
 
-The current schema includes:
+## Security & Reliability Controls
 
-- `Staff` with canonical roles and `Auth_Revision` for future session invalidation.
-- `Products` with stock, price, threshold, and status constraints.
-- `Orders` and `Order_Details` with restricted history-preserving foreign keys.
-- `Login_Rate_Limits` with bounded, one-way identifier/client buckets for concurrent login throttling.
-- `Password_Reset_Tokens` storing only case-sensitive SHA-256 token hashes, with expiry, use, revocation, and cleanup indexes.
+- **Bcrypt Password Storage**: Passwords are cryptographically hashed using `bcryptjs` with salt rounds. Raw passwords never leave the authentication boundary.
+- **CSRF Token Verification**: Mutating requests require matching session CSRF tokens in headers.
+- **Strict Role-Based Guards**: Protected endpoints check the session identity at the middleware layer before invoking application services.
+- **Transaction-Safe Stock Updates**: Sell orders check current available stock before mutating quantities. If any product in a multi-item order has insufficient stock, the entire order fails closed with zero stock mutation.
+- **Historical Price Immutability**: `Order_Details.Sold_Price` captures the unit price at the time of transaction. Subsequent product catalog price adjustments never mutate historical order totals.
+- **Data Deletion Integrity**: Products and staff members that are referenced in historical orders cannot be deleted, preserving audit trails.
 
-Data integrity rules that should not be moved into the browser:
+---
 
-- `Order_Details.Sold_Price` is the historical unit price. Order history does
-  not recalculate from the current product price.
-- Sell and Purchase operations update stock inside a transaction. Insufficient
-  stock, missing products, duplicate order IDs, and transaction failures must
-  leave no partial order or stock mutation.
-- Foreign keys use restrictive deletion for products, orders, and order staff
-  references so historical records remain valid.
-- `Staff.Email` is unique. Roles are constrained to `Admin`, `Manager`, and
-  `Staff`; `Auth_Revision` starts at 1 and invalidates stale sessions.
-- Product quantity, price, status, and threshold constraints are enforced in
-  the schema as well as at the application boundary.
-- `database/schema.sql` is a fresh-install baseline and drops existing tables.
-  Use it only for an empty or disposable database. Existing databases require
-  migrations `001` through `006` in order.
+## Author & Attribution
 
-The public password-reset request remains disabled because no secure email or
-token-delivery provider is configured. The internal token lifecycle must not be
-treated as a user-facing recovery flow until delivery and global session
-invalidation requirements are completed. Login attempts are limited to five
-valid-shaped attempts per identifier/client bucket in a 15-minute window; the
-sixth receives HTTP 429 with `Retry-After`, and a successful login clears the
-bucket.
-
-## Security notes
-
-Security is enforced in layers. The browser can improve usability and explain
-state, but it cannot make an unauthorized request valid. Each API boundary
-repeats the checks needed for its operation, and database constraints provide
-the final integrity boundary.
-
-- Passwords are stored as password hashes and are never returned by the APIs.
-- Reset-token records contain hashes only; raw tokens, reset URLs, and credentials are not persisted or logged.
-- PDO prepared statements and repository boundaries protect database operations from SQL injection.
-- CSRF validation protects authenticated mutations.
-- Session cookies use the project’s secure session settings, and protected requests revalidate the current staff record and role.
-- `Auth_Revision` invalidates stale sessions after password-sensitive changes without deleting arbitrary PHP session files.
-- The authenticated session probe is server-authoritative; sessionStorage is only a UI cache and never grants access.
-- HTML authorization failures use a styled shared page, while API authorization failures remain JSON.
-- Login rate-limit keys use normalized identifiers plus `REMOTE_ADDR`; forwarded proxy headers are not trusted by default.
-- Orders use transactions and row locking for stock changes.
-- Foreign keys preserve order history and protect referenced products and staff records.
-
-## Dependency management and autoloading
-
-`composer.json` requires PHP `>=8.0` and intentionally declares no third-party packages. Its narrow classmap covers the one global `OrderIdConflictException` class in `backend/application/orders/order-service.php`; no unsafe PSR-4 mapping is used for the procedural function files. `backend/bootstrap.php` optionally loads Composer's generated `vendor/autoload.php`, then loads the legacy config/helpers in deterministic order. Future namespaced code may add a PSR-4 mapping only after the relevant files are migrated and reviewed.
-
-## Code quality and maintainability
-
-The repository intentionally uses a transitional procedural PHP architecture.
-It is not a framework application and does not claim a complete PSR-4
-namespace migration.
-
-Quality rules for changes:
-
-- Keep SQL out of views and keep authorization decisions on the server.
-- Keep request validation separate from output encoding.
-- Use explicit service/repository boundaries and parameterized SQL.
-- Preserve existing API status codes and response shapes unless a security
-  change explicitly documents a new status such as 429.
-- Use `textContent` and DOM APIs for dynamic browser rendering; do not
-  introduce unsafe API-data interpolation into `innerHTML`.
-- Preserve numeric and currency values as LTR content inside the RTL interface.
-- Keep shared shell markup in partials and preserve JavaScript IDs, data
-  attributes, ARIA relationships, and script order.
-- Do not put passwords, reset tokens, database credentials, or session secrets
-  into logs, fixtures, screenshots, URLs, or browser storage.
-- Test failure paths, not only successful requests: 401, 403, 409, 422, 429,
-  503, database failure, stale session, empty data, rollback, and retry.
-
-### Source and generated assets
-
-Readable CSS and JavaScript under `assets/` are the source of truth. Runtime
-pages load generated files under `dist/`. The build is reproducible and is not
-an excuse to edit generated output by hand:
-
-```bash
-npm ci
-npm run build
-```
-
-The build uses pinned `clean-css` and `terser` development tools. Terser keeps
-top-level names stable because shared helpers and callbacks cross page-script
-boundaries. Bootstrap 5.3.0 and the Poppins font files are self-hosted. See
-[docs/FRONTEND-BUILD.md](docs/FRONTEND-BUILD.md) for ownership and licensing.
-
-### Change review expectations
-
-For a non-trivial change, review the actual diff and verify:
-
-1. API payloads, response envelopes, authorization, and session behavior are
-   unchanged unless the change explicitly requires otherwise.
-2. Database writes are transactional and recover cleanly on validation,
-   conflict, deadlock, and unexpected database errors.
-3. Dynamic HTML output is contextually escaped or rendered with safe DOM APIs.
-4. Existing selectors, partial include paths, print rules, and responsive
-   states remain compatible.
-5. Temporary databases, rows, users, sessions, browser profiles, screenshots,
-   and scripts are removed after verification.
-
-## Development checks
-
-Run PHP lint with the project PHP executable:
-
-```powershell
-C:\xampp\php\php.exe -l backend\views\dashboard.php
-```
-
-Run JavaScript syntax checks with Node.js:
-
-```powershell
-node --check assets\dashboard\dashboard.js
-```
-
-For broader changes, lint all affected PHP and JavaScript files and perform browser smoke testing against an isolated database. Do not use the live runtime database for destructive verification.
-
-## Known engineering limitations
-
-- Public password reset is intentionally disabled because no approved email or
-  SMS delivery provider is configured. Enabling it requires a real provider,
-  deployment secrets, HTTPS, request throttling, audit behavior, and session
-  invalidation verification.
-- Actual domain and HTTPS deployment are outside the local XAMPP workspace.
-- Production credentials and the least-privilege database account must be
-  supplied by the deployment owner.
-- Composer remains a transitional bootstrap layer; the PHP codebase is still
-  primarily procedural/global and is not a full PSR-4 application.
-- The repository currently relies on lint, build, isolated-database, API, and
-  Edge/CDP smoke verification rather than a dedicated unit/integration test
-  framework.
-- `STATUS.md` records a pre-existing local runtime-data provenance discrepancy.
-  Reconcile the runtime database with an authoritative backup before treating
-  the project as production-ready.
-
-## Author
-
-Mohammad Emad — [GitHub](https://github.com/mohammad-emad-dev)
-
-## License
-
-No license file is currently included in the repository. Confirm licensing before redistributing or deploying the project outside its intended environment.
+Developed by **Mohammad Emad** — [GitHub](https://github.com/mohammad-emad-dev)

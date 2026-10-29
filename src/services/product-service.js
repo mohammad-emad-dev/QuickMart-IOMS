@@ -1,3 +1,5 @@
+// Product inventory management and catalog business logic.
+// Stock levels determine catalog health badges, and order references protect audit integrity.
 const {
     STATUS_NORMAL,
     STATUS_LOW_STOCK,
@@ -12,6 +14,7 @@ const {
     getAllOrders
 } = require('../data/inventory-store');
 
+// Computes stock warning status by comparing current inventory against the configured threshold
 function deriveStockStatus(quantity, threshold) {
     if (quantity <= 0) {
         return STATUS_OUT_OF_STOCK;
@@ -87,6 +90,7 @@ function updateProductRecord(productId, updatePayload) {
     return targetProduct;
 }
 
+// Blocks deletion if the product appears in historical orders to protect ledger consistency
 function removeProductRecord(productId) {
     const targetProduct = findProductById(productId);
     if (!targetProduct) {

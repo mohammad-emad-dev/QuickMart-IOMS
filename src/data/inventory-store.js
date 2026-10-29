@@ -1,3 +1,5 @@
+// In-memory data store with demo seed records. Acts as the single source of truth
+// for inventory, orders, and staff records throughout the application lifecycle.
 const staffMembers = [
     {
         Staff_ID: 'STF001',
@@ -97,6 +99,7 @@ const orders = [
     }
 ];
 
+// Auto-increment counters maintain formatted IDs matching legacy client schemas
 let nextDetailSequence = 9;
 let nextOrderSequence = 6;
 let nextProductSequence = 11;
@@ -186,6 +189,7 @@ function findOrderById(orderId) {
     return orders.find(order => order.Order_ID.toLowerCase() === target) || null;
 }
 
+// Prepend newly created orders so recent transactions appear first in queries
 function insertOrder(orderRecord) {
     orders.unshift(orderRecord);
     return orderRecord;

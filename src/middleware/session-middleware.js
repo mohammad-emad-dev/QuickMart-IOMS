@@ -1,8 +1,11 @@
+// Lightweight session management and role-based access control (RBAC).
+// Tracks active sessions in memory and attaches the session object to incoming requests.
 const crypto = require('node:crypto');
 const { sendError } = require('../utils/api-response');
 
 const activeSessions = new Map();
 
+// Provisions a cryptographically random session and CSRF token when no valid cookie is present
 function resolveSession(request, response) {
     let sessionId = request.cookies.qm_session_id;
 
@@ -30,6 +33,7 @@ function sessionMiddleware(request, response, next) {
     next();
 }
 
+// Blocks unauthenticated requests from reaching protected business logic
 function requireAuthenticatedUser(request, response, next) {
     if (!request.session || !request.session.user) {
         return sendError(response, 'Authentication required.', 401);
@@ -37,6 +41,7 @@ function requireAuthenticatedUser(request, response, next) {
     next();
 }
 
+// Restricts route execution to specific authorized roles (e.g. Admin or Manager)
 function requireRole(allowedRoles) {
     const permittedRoles = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
     return function roleGuard(request, response, next) {
@@ -52,7 +57,6 @@ function requireRole(allowedRoles) {
 
 module.exports = {
     sessionMiddleware,
-    resolveSession,
     requireAuthenticatedUser,
     requireRole
 };

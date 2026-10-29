@@ -1,3 +1,5 @@
+// Express application factory. Route mounting order matters: static assets
+// and security headers run first, followed by web views and backend JSON APIs.
 const path = require('node:path');
 const express = require('express');
 const cookieParser = require('cookie-parser');
@@ -23,14 +25,14 @@ function createApp() {
     app.use(applySecurityHeaders);
     app.use(sessionMiddleware);
 
-    // Static Assets
+    // Serve public assets and minified dist bundles directly
     app.use('/assets', express.static(path.join(rootDir, 'assets')));
     app.use('/dist', express.static(path.join(rootDir, 'dist')));
 
-    // Page Views & Root
+    // HTML views and legacy .php routing compatibility
     app.use('/', viewRoutes);
 
-    // API Routes
+    // Modular JSON API endpoints matching legacy PHP paths
     app.use('/backend/api/auth', authRoutes);
     app.use('/backend/api/products', productRoutes);
     app.use('/backend/api/orders', orderRoutes);

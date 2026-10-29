@@ -1,3 +1,5 @@
+// Executive analytics and operations report compilation service.
+// Aggregates sales figures, category distribution, and monthly trends from order history.
 const {
     getAllOrders,
     getAllProducts,
@@ -10,6 +12,7 @@ function resolveStaffName(staffId) {
     return member ? member.Full_Name : 'Staff';
 }
 
+// Separates sales revenue and purchase expenditure to calculate gross and net margins
 function computeOrderTotals(orderList) {
     let sellOrders = 0;
     let purchaseOrders = 0;
@@ -50,6 +53,7 @@ function aggregateCategories(productList) {
     }));
 }
 
+// Ranks top 5 sold products by volume to identify inventory velocity leaders
 function aggregateTopProducts(orderList) {
     const productMetrics = new Map();
     for (const order of orderList) {
@@ -68,6 +72,7 @@ function aggregateTopProducts(orderList) {
         .slice(0, 5);
 }
 
+// Groups volume by calendar month (YYYY-MM) to trace seasonal order trends
 function aggregateMonthlyTrends(orderList) {
     const monthRegistry = new Map();
     for (const order of orderList) {

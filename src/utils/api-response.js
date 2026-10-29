@@ -1,3 +1,5 @@
+// Standard JSON envelope helpers to ensure consistent API shape across all endpoints
+// and keep legacy frontend AJAX handlers from breaking on response structure changes.
 function sendSuccess(response, payload, message = 'Success') {
     return response.json({
         success: true,

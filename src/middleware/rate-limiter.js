@@ -1,3 +1,5 @@
+// In-memory sliding window rate limiter to throttle brute-force sign-in attempts.
+// Normalizes the identifier key so case differences cannot circumvent the threshold.
 const { RATE_LIMIT_MAX_ATTEMPTS, RATE_LIMIT_WINDOW_MS } = require('../config/app-constants');
 
 const attemptRegistry = new Map();
@@ -10,6 +12,7 @@ function evaluateRateLimit(identifierKey) {
         windowStartTime: currentTime
     };
 
+    // Reset attempt counter once the sliding window has elapsed
     if (currentTime - existing.windowStartTime > RATE_LIMIT_WINDOW_MS) {
         existing.attemptCount = 0;
         existing.windowStartTime = currentTime;
@@ -27,6 +30,7 @@ function evaluateRateLimit(identifierKey) {
     return { isAllowed: true, retryAfterSeconds: 0 };
 }
 
+// Clear attempts on successful authentication to prevent locking out legitimate users
 function clearRateLimit(identifierKey) {
     const normalizedKey = String(identifierKey).trim().toLowerCase();
     attemptRegistry.delete(normalizedKey);

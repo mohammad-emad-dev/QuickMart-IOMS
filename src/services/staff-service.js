@@ -1,3 +1,5 @@
+// Staff directory administration and credential management service.
+// Enforces unique email constraints, password hashing, and audit safeguards.
 const bcrypt = require('bcryptjs');
 const {
     getAllStaff,
@@ -10,6 +12,7 @@ const {
 } = require('../data/inventory-store');
 const { ROLE_ADMIN, ROLE_MANAGER, ROLE_STAFF } = require('../config/app-constants');
 
+// Strips sensitive password hashes and internal counters before returning staff entities
 function sanitizeStaffRecord(member) {
     return {
         Staff_ID: member.Staff_ID,
@@ -74,6 +77,7 @@ function updateStaffMember(staffId, updatePayload) {
     return { status: 'updated', staff: sanitizeStaffRecord(member) };
 }
 
+// Prevents administrators from locking themselves out or deleting staff linked to order records
 function removeStaffMember(operatorStaffId, targetStaffId) {
     if (operatorStaffId === targetStaffId) {
         return { status: 'self_deletion' };
@@ -114,6 +118,7 @@ function updateSelfProfile(staffId, profilePayload) {
     return { status: 'updated', profile: sanitizeStaffRecord(member) };
 }
 
+// Re-hashes the password and increments auth_revision to invalidate stale sessions
 function changeOwnPassword(staffId, currentPassword, newPassword) {
     const member = findStaffById(staffId);
     if (!member) {

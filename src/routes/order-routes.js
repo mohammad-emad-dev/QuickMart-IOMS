@@ -1,3 +1,5 @@
+// Order endpoints for listing, inspecting, and creating sell/purchase transactions.
+// Automatically attributes new orders to the currently authenticated staff account.
 const express = require('express');
 const { sendSuccess, sendError } = require('../utils/api-response');
 const { requireAuthenticatedUser } = require('../middleware/session-middleware');
@@ -9,6 +11,7 @@ const {
 
 const router = express.Router();
 
+// Retrieve orders filtered by date, transaction type, or staff ID
 router.get('/list.php', requireAuthenticatedUser, (request, response) => {
     const { type, staff_id, date_from, date_to } = request.query;
     const result = listOrders(request.session.user, {
@@ -20,6 +23,7 @@ router.get('/list.php', requireAuthenticatedUser, (request, response) => {
     sendSuccess(response, result);
 });
 
+// Returns detailed item breakdown; non-admins are restricted to their own orders
 router.get('/get.php', requireAuthenticatedUser, (request, response) => {
     const { id } = request.query;
     if (!id) {
@@ -37,6 +41,7 @@ router.get('/get.php', requireAuthenticatedUser, (request, response) => {
     sendSuccess(response, outcome.data);
 });
 
+// Records an order, updates inventory quantities, and creates detail lines
 router.post('/create.php', requireAuthenticatedUser, (request, response) => {
     const { order_type, party_name, items } = request.body || {};
     if (!order_type || !party_name || !Array.isArray(items) || items.length === 0) {

@@ -1,3 +1,5 @@
+// Production CSS build pipeline. Minifies modular stylesheets into dist/css/
+// and updates relative asset paths for production delivery.
 const fs = require('node:fs');
 const path = require('node:path');
 const CleanCSS = require('clean-css');
