@@ -408,10 +408,11 @@ async function loadProductsFromDatabase() {
         const response = await apiFetch('products/list.php');
         const data = await parseApiResponse(response);
         const payload = data.data || {};
-        const productRows = Array.isArray(payload.products) ? payload.products : [];
+        const productRows = Array.isArray(payload) ? payload : (Array.isArray(payload.products) ? payload.products : []);
+        const categoriesList = Array.isArray(payload.categories) ? payload.categories : Array.from(new Set(productRows.map(p => p.Category || p.category).filter(Boolean))).sort();
 
         products = productRows.map(normalizeProduct);
-        populateCategoryFilter(payload.categories);
+        populateCategoryFilter(categoriesList);
         productsLoadState = 'success';
         updateProductSummary();
         filterProducts();

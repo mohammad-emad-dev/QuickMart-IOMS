@@ -416,7 +416,9 @@
             }
 
             const responseData = data.data && typeof data.data === "object" ? data.data : {};
-            const staffList = Array.isArray(responseData.staff) ? responseData.staff : [];
+            const staffList = Array.isArray(responseData)
+                ? responseData
+                : (Array.isArray(responseData.staff) ? responseData.staff : []);
             const total = Number.isFinite(Number(responseData.total)) && Number(responseData.total) >= 0
                 ? Number(responseData.total)
                 : staffList.length;

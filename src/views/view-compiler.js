@@ -18,22 +18,25 @@ function extractCleanNavMarkup() {
 
 function renderDocumentHead(title, description, viewport, stylesheetPaths, includeDashboardMeta = false, includePoppins = false) {
     return `<!DOCTYPE html>
-<html lang="en" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="${viewport}">
     <meta name="description" content="${description}">
 ${includeDashboardMeta ? `    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="theme-color" content="#10232c">
+    <meta name="theme-color" content="#090D14">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="QuickMart">
     <meta name="application-name" content="QuickMart IOMS">
-    <meta name="msapplication-TileColor" content="#10232c">
+    <meta name="msapplication-TileColor" content="#090D14">
     <meta name="msapplication-config" content="none">` : ''}
     <link rel="icon" type="image/png" href="../../assets/icons/icon-512.png">
     <title>${title}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../../dist/css/bootstrap.min.css?v=bootstrap-5.3.0">
 ${includePoppins ? `    <link rel="stylesheet" href="../../dist/css/poppins.min.css?v=frontend-opt-01">` : ''}
 ${stylesheetPaths.map(sheet => `    <link rel="stylesheet" href="${sheet}">`).join('\n')}
@@ -50,12 +53,15 @@ function renderScriptLoaderTag(scriptPath) {
 
 function renderForbiddenAccessPage() {
     return `<!DOCTYPE html>
-<html lang="en" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="QuickMart IOMS access state">
     <title>QuickMart IOMS - Access restricted</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../../dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="../../assets/common.css">
 </head>

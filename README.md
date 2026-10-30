@@ -1,6 +1,6 @@
 # QuickMart IOMS
 
-**QuickMart Inventory & Operations Management System** is a responsive retail operations platform built with Node.js 22 LTS and Express 5 Clean Architecture. It features an RTL-first interface with Arabic-friendly typography, live stock tracking, transactional order workflows, and role-based access control.
+**QuickMart Inventory & Operations Management System** is a responsive retail operations platform built with Node.js 22 LTS and Express 5 Clean Architecture. It features an Executive Obsidian & Warm Gold design system with Plus Jakarta Sans and JetBrains Mono typography, high-contrast accessible data tables, live stock tracking, transactional order workflows, and role-based access control.
 
 ---
 
@@ -20,6 +20,11 @@
 | :---: | :---: |
 | ![Sign In](docs/screenshots/01-login.png) | ![Reports](docs/screenshots/06-reports.png) |
 | *Rate-limited authentication with session CSRF protection* | *Turnover metrics, category distributions, and monthly trends* |
+
+| Staff Management | Account & Profile Settings |
+| :---: | :---: |
+| ![Staff Management](docs/screenshots/07-staff.png) | ![Profile](docs/screenshots/08-profile.png) |
+| *Access directory, role assignments, and account controls* | *Personal information, password updates, and order activity* |
 
 ---
 

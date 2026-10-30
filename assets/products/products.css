@@ -482,27 +482,27 @@
 
 .products-table thead th:nth-child(4),
 .products-table tbody td:nth-child(4) {
-    width: 14%;
+    width: 17%;
 }
 
 .products-table thead th:nth-child(5),
 .products-table tbody td:nth-child(5) {
-    width: 11%;
+    width: 9%;
 }
 
 .products-table thead th:nth-child(6),
 .products-table tbody td:nth-child(6) {
-    width: 13%;
+    width: 12%;
 }
 
 .products-table thead th:nth-child(7),
 .products-table tbody td:nth-child(7) {
-    width: 15%;
+    width: 13%;
 }
 
 .products-table thead th:nth-child(8),
 .products-table tbody td:nth-child(8) {
-    width: 112px;
+    width: 104px;
 }
 
 .products-table tbody td {

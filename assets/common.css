@@ -322,57 +322,75 @@ input[type="tel"] {
 /* Operations Ledger design foundation and theme tokens. */
 :root {
     color-scheme: dark;
-    --qm-ink-950: #091419;
-    --qm-ink-900: #101f25;
-    --qm-ink-800: #172d35;
-    --qm-ink-700: #23404a;
-    --qm-ink-300: #8ca19d;
-    --qm-ink-600: #b2c3bf;
-    --qm-ink-deep: #091419;
-    --qm-canvas: #0d191e;
-    --qm-surface: #14252b;
-    --qm-surface-subtle: #1a3037;
-    --qm-surface-strong: #203a42;
-    --qm-border: #2d4851;
-    --qm-border-strong: #45616a;
-    --qm-text: #edf5f2;
-    --qm-text-muted: #b2c3bf;
-    --qm-text-faint: #8ca19d;
-    --qm-white: #f7fbf9;
-    --qm-amber: #e2ad4f;
-    --qm-amber-strong: #f1c66d;
-    --qm-amber-soft: #46351d;
-    --qm-teal: #42c29f;
-    --qm-teal-soft: #163b35;
-    --qm-warning: #e4b65d;
-    --qm-warning-soft: #3a2d18;
-    --qm-danger: #ef8791;
-    --qm-danger-soft: #3a2028;
-    --qm-info: #7fc5e2;
-    --qm-info-soft: #17323e;
-    --qm-focus: #f0bd5a;
-    --qm-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.28);
-    --qm-shadow-md: 0 12px 30px rgba(0, 0, 0, 0.34);
-    --qm-shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.5);
-    --qm-radius-control: 6px;
-    --qm-radius-card: 10px;
-    --qm-radius-modal: 14px;
-    --qm-transition-fast: 160ms ease;
-    --qm-transition-base: 220ms ease;
-    --qm-nav-width: 256px;
+    --qm-ink-950: #05080f;
+    --qm-ink-900: #090d15;
+    --qm-ink-800: #0f1624;
+    --qm-ink-700: #172134;
+    --qm-ink-600: #1f2b42;
+    --qm-ink-300: #94a3b8;
+    --qm-ink-deep: #05080f;
+
+    --qm-canvas: #090d14;
+    --qm-surface: #101725;
+    --qm-surface-subtle: #172133;
+    --qm-surface-strong: #1e2b42;
+    --qm-surface-hover: #23324d;
+
+    --qm-border: rgba(255, 255, 255, 0.08);
+    --qm-border-strong: rgba(255, 255, 255, 0.16);
+    --qm-border-glow: rgba(245, 158, 11, 0.28);
+
+    --qm-text: #f8fafc;
+    --qm-text-muted: #94a3b8;
+    --qm-text-faint: #64748b;
+    --qm-white: #ffffff;
+
+    --qm-amber: #f59e0b;
+    --qm-amber-strong: #fbbf24;
+    --qm-amber-soft: rgba(245, 158, 11, 0.12);
+
+    --qm-teal: #10b981;
+    --qm-teal-strong: #34d399;
+    --qm-teal-soft: rgba(16, 185, 129, 0.12);
+
+    --qm-warning: #f59e0b;
+    --qm-warning-soft: rgba(245, 158, 11, 0.12);
+
+    --qm-danger: #f43f5e;
+    --qm-danger-strong: #fb7185;
+    --qm-danger-soft: rgba(244, 63, 94, 0.12);
+
+    --qm-info: #0ea5e9;
+    --qm-info-strong: #38bdf8;
+    --qm-info-soft: rgba(14, 165, 233, 0.12);
+
+    --qm-focus: #f59e0b;
+    --qm-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.25);
+    --qm-shadow-md: 0 8px 24px -4px rgba(0, 0, 0, 0.45), 0 2px 6px -1px rgba(0, 0, 0, 0.35);
+    --qm-shadow-lg: 0 16px 40px -6px rgba(0, 0, 0, 0.65), 0 6px 16px -2px rgba(0, 0, 0, 0.45);
+    --qm-shadow-amber: 0 4px 20px rgba(245, 158, 11, 0.25);
+
+    --qm-radius-control: 8px;
+    --qm-radius-card: 14px;
+    --qm-radius-modal: 18px;
+    --qm-radius-panel: 14px;
+
+    --qm-transition-fast: 150ms cubic-bezier(0.16, 1, 0.3, 1);
+    --qm-transition-base: 220ms cubic-bezier(0.16, 1, 0.3, 1);
+
+    --qm-nav-width: 260px;
     --qm-header-height: 64px;
     --qm-page-gutter: 32px;
-    --qm-content-max: 1440px;
+    --qm-content-max: 1600px;
     --qm-z-drawer-backdrop: 1025;
     --qm-z-shell: 1030;
     --qm-z-drawer: 1040;
-    --qm-radius-panel: 14px;
     --qm-z-toast: 1100;
 
     /* Compatibility aliases used by existing page styles. */
-    --primary-color: var(--qm-amber-strong);
+    --primary-color: var(--qm-amber);
     --primary-dark: var(--qm-ink-800);
-    --primary-light: var(--qm-amber);
+    --primary-light: var(--qm-amber-strong);
     --success-color: var(--qm-teal);
     --warning-color: var(--qm-warning);
     --danger-color: var(--qm-danger);
@@ -477,7 +495,7 @@ input[type="tel"] {
 }
 
 html {
-    direction: rtl;
+    direction: ltr;
     scroll-behavior: smooth;
 }
 
@@ -486,15 +504,20 @@ body {
     margin: 0;
     background: var(--qm-canvas);
     color: var(--qm-text);
-    font-family: "Noto Sans Arabic", "Noto Sans", "Segoe UI", Tahoma, Arial, sans-serif;
-    font-size: 1rem;
-    line-height: 1.55;
+    font-family: "Plus Jakarta Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    letter-spacing: -0.01em;
     text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
-/* Keep English copy and its punctuation readable inside the RTL-first shell. */
-:where(h1, h2, h3, h4, h5, h6, p) {
-    unicode-bidi: plaintext;
+:where(h1, h2, h3, h4, h5, h6) {
+    font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: var(--qm-text);
 }
 
 body.qm-drawer-open {
@@ -525,8 +548,12 @@ body :is([dir="ltr"], .numeric-value, .money-value, .identifier-value, .date-val
 /* Shared shell */
 .qm-shell-nav.navbar {
     position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
     inset-block: 0;
-    inset-inline-end: 0;
+    inset-inline-start: 0;
+    inset-inline-end: auto;
     z-index: var(--qm-z-shell);
     display: block;
     width: var(--qm-nav-width);
@@ -534,9 +561,10 @@ body :is([dir="ltr"], .numeric-value, .money-value, .identifier-value, .date-val
     min-height: 0;
     overflow: hidden;
     padding: 0;
-    background: var(--qm-ink-950);
+    background: #0b111a;
     border: 0;
-    box-shadow: 10px 0 30px rgba(16, 35, 44, 0.06);
+    border-right: 1px solid var(--qm-border);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.4);
 }
 
 .qm-shell-frame {
@@ -568,13 +596,14 @@ body :is([dir="ltr"], .numeric-value, .money-value, .identifier-value, .date-val
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    flex: 0 0 40px;
-    width: 40px;
-    height: 40px;
-    color: var(--qm-ink-950);
-    background: var(--qm-amber);
-    border: 1px solid rgba(255, 253, 248, 0.2);
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
+    color: #090d14;
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    border: 1px solid rgba(255, 255, 255, 0.25);
     border-radius: 10px;
+    box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
 }
 
 .qm-brand-mark svg,
@@ -813,7 +842,10 @@ body :is([dir="ltr"], .numeric-value, .money-value, .identifier-value, .date-val
 
 .main-content {
     min-height: 100vh;
-    margin-inline-end: var(--qm-nav-width);
+    margin-left: var(--qm-nav-width);
+    margin-inline-start: var(--qm-nav-width);
+    margin-inline-end: 0;
+    margin-right: 0;
     padding-block: 0 40px;
     background: var(--qm-canvas);
 }
@@ -1093,7 +1125,9 @@ body :is([dir="ltr"], .numeric-value, .money-value, .identifier-value, .date-val
     .qm-nav-drawer.navbar-collapse.collapsing {
         position: fixed;
         inset-block: 0;
-        inset-inline-end: 0;
+        inset-inline-start: 0;
+        left: 0;
+        right: auto;
         z-index: var(--qm-z-drawer);
         display: flex;
         width: min(88vw, 320px);
@@ -1101,9 +1135,10 @@ body :is([dir="ltr"], .numeric-value, .money-value, .identifier-value, .date-val
         max-height: 100dvh;
         padding: 88px 16px 16px;
         overflow: hidden;
-        background: var(--qm-ink-950);
-        box-shadow: -20px 0 50px rgba(16, 35, 44, 0.25);
-        transform: translateX(110%);
+        background: #0b111a;
+        box-shadow: 20px 0 50px rgba(0, 0, 0, 0.45);
+        border-right: 1px solid var(--qm-border);
+        transform: translateX(-105%);
         visibility: hidden;
         transition: transform var(--qm-transition-base), visibility var(--qm-transition-base);
     }
@@ -1118,11 +1153,15 @@ body :is([dir="ltr"], .numeric-value, .money-value, .identifier-value, .date-val
         inset: 0;
         z-index: var(--qm-z-drawer-backdrop);
         content: "";
-        background: rgba(16, 35, 44, 0.48);
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(2px);
     }
 
     .main-content {
+        margin-left: 0;
+        margin-inline-start: 0;
         margin-inline-end: 0;
+        margin-right: 0;
         padding-top: var(--qm-header-height);
     }
 

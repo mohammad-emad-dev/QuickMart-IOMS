@@ -16,10 +16,12 @@ const {
 
 const router = express.Router();
 
-// Administrative directory listing showing all staff members and their roles
 router.get('/list.php', requireRole(ROLE_ADMIN), (request, response) => {
     const directory = listStaffDirectory();
-    sendSuccess(response, directory);
+    sendSuccess(response, {
+        staff: directory,
+        total: directory.length
+    });
 });
 
 // Profile retrieval allowed for administrators or the account owner

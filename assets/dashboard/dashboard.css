@@ -147,9 +147,9 @@ html:has(body.dashboard-page) {
 
 .dashboard-clock-time {
     color: var(--qm-amber-strong);
-    font-family: "Roboto Mono", "Cascadia Mono", Consolas, monospace;
+    font-family: 'JetBrains Mono', monospace;
     font-size: 1rem;
-    font-weight: 800;
+    font-weight: 700;
     letter-spacing: 0.04em;
 }
 
@@ -157,18 +157,26 @@ html:has(body.dashboard-page) {
 .dashboard-page time,
 .dashboard-page .dashboard-table td:nth-child(1),
 .dashboard-page .dashboard-table td:nth-child(4),
-.dashboard-page .dashboard-table td:nth-child(5),
-.dashboard-page .dashboard-table td:nth-child(6) {
+.dashboard-page .dashboard-table td:nth-child(5) {
     direction: ltr;
-    text-align: start;
-    unicode-bidi: plaintext;
     font-variant-numeric: tabular-nums;
 }
 
+.dashboard-page .dashboard-table td:nth-child(1) {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+}
+
 .dashboard-page .dashboard-table td:nth-child(4),
-.dashboard-page .dashboard-table td:nth-child(5),
+.dashboard-page .dashboard-table td:nth-child(5) {
+    text-align: right;
+    font-family: 'JetBrains Mono', monospace;
+}
+
 .dashboard-page .dashboard-table td:nth-child(6) {
-    text-align: end;
+    text-align: right;
+    white-space: nowrap;
+    color: var(--qm-text-muted);
 }
 
 .dashboard-state,
@@ -355,12 +363,16 @@ html:has(body.dashboard-page) {
 }
 
 .dashboard-kpi-value {
-    margin-top: 24px;
+    margin-top: 20px;
     color: var(--qm-text);
-    font-size: clamp(1.7rem, 3vw, 2.55rem);
+    font-size: clamp(1.4rem, 2.1vw, 2.1rem);
     font-weight: 800;
-    letter-spacing: -0.04em;
-    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .dashboard-kpi-card-alert .dashboard-kpi-value {
@@ -674,12 +686,13 @@ html:has(body.dashboard-page) {
 }
 
 .dashboard-page .dashboard-table {
-    min-width: 690px;
+    width: 100%;
+    min-width: 540px;
     margin: 0;
     color: var(--qm-text);
-    font-size: 0.8rem;
+    font-size: 0.82rem;
     vertical-align: middle;
-    direction: rtl;
+    direction: ltr;
 }
 
 .dashboard-page .dashboard-table thead th {
@@ -691,6 +704,13 @@ html:has(body.dashboard-page) {
     text-transform: uppercase;
     white-space: nowrap;
     border-bottom: 1px solid var(--qm-border);
+    text-align: left;
+}
+
+.dashboard-page .dashboard-table thead th:nth-child(4),
+.dashboard-page .dashboard-table thead th:nth-child(5),
+.dashboard-page .dashboard-table thead th:nth-child(6) {
+    text-align: right;
 }
 
 .dashboard-page .dashboard-table tbody td {

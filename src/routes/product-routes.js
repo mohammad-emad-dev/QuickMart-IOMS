@@ -17,7 +17,12 @@ const router = express.Router();
 router.get('/list.php', requireAuthenticatedUser, (request, response) => {
     const { category, status, search } = request.query;
     const matchingProducts = filterProducts({ category, status, search });
-    sendSuccess(response, matchingProducts);
+    const allProducts = filterProducts({});
+    const categories = Array.from(new Set(allProducts.map(p => p.Category).filter(Boolean))).sort();
+    sendSuccess(response, {
+        products: matchingProducts,
+        categories
+    });
 });
 
 router.get('/get.php', requireAuthenticatedUser, (request, response) => {

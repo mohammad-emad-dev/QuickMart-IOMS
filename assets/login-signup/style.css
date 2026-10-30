@@ -2,28 +2,28 @@
 
 :root {
     color-scheme: dark;
-    --login-canvas: var(--qm-canvas, #0d191e);
-    --login-surface: var(--qm-surface, #14252b);
-    --login-surface-subtle: var(--qm-surface-subtle, #1a3037);
-    --login-deep: var(--qm-ink-deep, #091419);
-    --login-ink: var(--qm-text, #edf5f2);
-    --login-ink-soft: var(--qm-text, #edf5f2);
-    --login-text: var(--qm-text, #edf5f2);
-    --login-muted: var(--qm-text-muted, #b2c3bf);
-    --login-faint: var(--qm-text-faint, #8ca19d);
-    --login-border: var(--qm-border, #2d4851);
-    --login-border-strong: var(--qm-border-strong, #45616a);
-    --login-teal: var(--qm-teal, #42c29f);
-    --login-teal-soft: var(--qm-teal-soft, #163b35);
-    --login-amber: var(--qm-amber, #e2ad4f);
-    --login-amber-strong: var(--qm-amber-strong, #f1c66d);
-    --login-warning-soft: var(--qm-warning-soft, #3a2d18);
-    --login-danger: var(--qm-danger, #ef8791);
-    --login-danger-soft: var(--qm-danger-soft, #3a2028);
-    --login-info: var(--qm-info, #7fc5e2);
-    --login-info-soft: var(--qm-info-soft, #17323e);
-    --login-focus: var(--qm-focus, #f0bd5a);
-    --login-transition: 180ms ease;
+    --login-canvas: #090D14;
+    --login-surface: #101725;
+    --login-surface-subtle: #172133;
+    --login-deep: #0B111A;
+    --login-ink: #F8FAFC;
+    --login-ink-soft: #E2E8F0;
+    --login-text: #F8FAFC;
+    --login-muted: #94A3B8;
+    --login-faint: #64748B;
+    --login-border: rgba(255, 255, 255, 0.08);
+    --login-border-strong: rgba(255, 255, 255, 0.16);
+    --login-teal: #10B981;
+    --login-teal-soft: rgba(16, 185, 129, 0.12);
+    --login-amber: #F59E0B;
+    --login-amber-strong: #FBBF24;
+    --login-warning-soft: rgba(245, 158, 11, 0.12);
+    --login-danger: #F43F5E;
+    --login-danger-soft: rgba(244, 63, 94, 0.12);
+    --login-info: #0EA5E9;
+    --login-info-soft: rgba(14, 165, 233, 0.12);
+    --login-focus: #F59E0B;
+    --login-transition: 180ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 * {
@@ -31,7 +31,7 @@
 }
 
 html {
-    direction: rtl;
+    direction: ltr;
     scroll-behavior: smooth;
 }
 
@@ -41,7 +41,8 @@ body.login-page {
     overflow-x: hidden;
     background: var(--login-canvas);
     color: var(--login-text);
-    font-family: "Noto Sans Arabic", "Noto Sans", "Segoe UI", Tahoma, Arial, sans-serif;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
 }
 
 .login-main {
@@ -250,32 +251,38 @@ body.login-page {
 .login-input-icon {
     position: absolute;
     top: 50%;
-    right: 0.85rem;
+    left: 1rem;
+    right: auto;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 1.35rem;
-    height: 1.35rem;
-    color: var(--login-teal);
+    width: 1.25rem;
+    height: 1.25rem;
+    color: var(--login-muted);
     pointer-events: none;
     transform: translateY(-50%);
+    transition: color var(--login-transition);
+}
+
+.login-input-wrap:focus-within .login-input-icon {
+    color: var(--login-amber);
 }
 
 .login-input-icon svg {
-    width: 1.1rem;
-    height: 1.1rem;
+    width: 1.15rem;
+    height: 1.15rem;
 }
 
 .login-input-wrap input {
     width: 100%;
-    min-height: 50px;
-    padding: 0.78rem 3rem 0.78rem 0.9rem;
+    min-height: 48px;
+    padding: 0.75rem 2.85rem 0.75rem 2.85rem;
     border: 1px solid var(--login-border-strong);
-    border-radius: 0.7rem;
+    border-radius: 0.65rem;
     background: var(--login-surface-subtle);
     color: var(--login-text);
     font: inherit;
-    font-size: 0.94rem;
+    font-size: 0.92rem;
     transition: border-color var(--login-transition), box-shadow var(--login-transition), background-color var(--login-transition);
 }
 
@@ -285,13 +292,13 @@ body.login-page {
 }
 
 .login-input-wrap input:hover {
-    border-color: var(--login-teal);
+    border-color: rgba(255, 255, 255, 0.24);
 }
 
 .login-input-wrap input:focus {
-    border-color: var(--login-teal);
+    border-color: var(--login-amber);
     background: var(--login-surface);
-    box-shadow: 0 0 0 3px rgba(14, 107, 83, 0.14);
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
     outline: none;
 }
 
@@ -300,10 +307,7 @@ body.login-page {
     direction: ltr;
     text-align: left;
     unicode-bidi: plaintext;
-}
-
-.login-input-wrap--password input {
-    padding-inline-start: 3.35rem;
+    font-family: inherit;
 }
 
 .login-icon-button,
@@ -311,8 +315,8 @@ body.login-page {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 44px;
-    min-height: 44px;
+    min-width: 40px;
+    min-height: 40px;
     border: 0;
     background: transparent;
     color: var(--login-faint);
@@ -323,14 +327,15 @@ body.login-page {
 .login-icon-button {
     position: absolute;
     top: 50%;
-    left: 0.25rem;
-    border-radius: 0.55rem;
+    right: 0.4rem;
+    left: auto;
+    border-radius: 0.5rem;
     transform: translateY(-50%);
 }
 
 .login-icon-button:hover {
-    background: var(--login-surface-subtle);
-    color: var(--login-teal);
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--login-amber);
 }
 
 .login-icon-button svg,
@@ -426,27 +431,31 @@ body.login-page {
 }
 
 .login-button--primary {
-    border-color: var(--login-teal);
-    background: var(--login-teal);
-    color: var(--login-deep);
+    border-color: var(--login-amber);
+    background: var(--login-amber);
+    color: #090D14;
+    font-weight: 800;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .login-button--primary:hover {
-    border-color: var(--login-ink-soft);
-    background: var(--login-ink-soft);
-    color: var(--login-text);
+    border-color: var(--login-amber-strong);
+    background: var(--login-amber-strong);
+    color: #090D14;
+    box-shadow: 0 4px 14px rgba(245, 158, 11, 0.25);
+    transform: translateY(-1px);
 }
 
 .login-button--secondary {
     border-color: var(--login-border-strong);
-    background: var(--login-surface);
-    color: var(--login-ink-soft);
+    background: var(--login-surface-subtle);
+    color: var(--login-text);
 }
 
 .login-button--secondary:hover {
-    border-color: var(--login-teal);
-    background: var(--login-teal-soft);
-    color: var(--login-ink-soft);
+    border-color: rgba(255, 255, 255, 0.28);
+    background: var(--login-surface);
+    color: #FFFFFF;
 }
 
 .login-button:disabled,
