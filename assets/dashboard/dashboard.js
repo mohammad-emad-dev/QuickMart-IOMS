@@ -446,24 +446,94 @@
     }
 
     function renderSummary(summary) {
-        const totalProducts = numberFrom(summary, ['total_products', 'totalProducts']);
-        const lowStock = numberFrom(summary, ['low_stock_products', 'low_stock_count', 'lowStockCount', 'low_stock']);
-        const totalOrders = numberFrom(summary, ['total_orders', 'totalOrders']);
-        const totalSales = numberFrom(summary, ['total_sales', 'totalSales']);
-        const totalPurchases = numberFrom(summary, ['total_purchases', 'totalPurchases']);
-        const netRevenue = numberFrom(summary, ['net_revenue', 'netRevenue', 'net_profit']);
+        const products = dashboardState.products || [];
+        const orders = dashboardState.orders || [];
 
+        // Inventory metrics
+        const totalProducts = products.length > 0 ? products.length : numberFrom(summary, ['total_products', 'totalProducts']);
+        let totalStockUnits = 0;
+        let inventoryValuation = 0;
+        const categoryMap = new Map();
+
+        products.forEach(product => {
+            const qty = Number(valueFrom(product, ['Quantity', 'quantity', 'Stock_Quantity', 'stock_quantity'])) || 0;
+            const price = parseFloat(valueFrom(product, ['Price', 'price'])) || 0;
+            totalStockUnits += qty;
+            inventoryValuation += (qty * price);
+
+            const cat = displayText(valueFrom(product, ['Category', 'category']), 'Other');
+            categoryMap.set(cat, (categoryMap.get(cat) || 0) + qty);
+        });
+
+        const avgUnitPrice = totalStockUnits > 0 ? (inventoryValuation / totalStockUnits) : 0;
+        const categoryCount = categoryMap.size;
+        let topCategoryName = 'General';
+        let topCategoryCount = 0;
+        categoryMap.forEach((count, cat) => {
+            if (count > topCategoryCount) {
+                topCategoryCount = count;
+                topCategoryName = cat;
+            }
+        });
+
+        const lowStock = numberFrom(summary, ['low_stock_products', 'low_stock_count', 'lowStockCount', 'low_stock']) !== null
+            ? numberFrom(summary, ['low_stock_products', 'low_stock_count', 'lowStockCount', 'low_stock'])
+            : products.filter(isLowStockProduct).length;
+        const outOfStockCount = products.filter(p => {
+            const qty = Number(valueFrom(p, ['Quantity', 'quantity'])) || 0;
+            return qty <= 0 || displayText(valueFrom(p, ['Status', 'status']), '').toLowerCase() === 'out of stock';
+        }).length;
+
+        // Order metrics
+        let sellOrdersCount = 0;
+        let purchaseOrdersCount = 0;
+        let calculatedSales = 0;
+        let calculatedPurchases = 0;
+
+        orders.forEach(order => {
+            const type = displayText(valueFrom(order, ['Order_Type', 'order_type']), '');
+            const amount = Number(valueFrom(order, ['Total_Amount', 'total_amount'])) || 0;
+            if (type === 'Sell') {
+                sellOrdersCount += 1;
+                calculatedSales += amount;
+            } else if (type === 'Purchase') {
+                purchaseOrdersCount += 1;
+                calculatedPurchases += amount;
+            }
+        });
+
+        const totalOrders = orders.length > 0 ? orders.length : numberFrom(summary, ['total_orders', 'totalOrders']);
+        const totalSales = summary && summary.total_sales !== undefined && summary.total_sales !== null ? summary.total_sales : calculatedSales;
+        const totalPurchases = summary && summary.total_purchases !== undefined && summary.total_purchases !== null ? summary.total_purchases : calculatedPurchases;
+        const netRevenue = summary && summary.net_revenue !== undefined && summary.net_revenue !== null ? summary.net_revenue : (totalSales - totalPurchases);
+        const avgOrderValue = sellOrdersCount > 0 ? (totalSales / sellOrdersCount) : 0;
+
+        // Populate summary cards
         setText('totalProducts', formatInteger(totalProducts));
+        setText('totalUnitsCount', totalStockUnits > 0 ? `${formatInteger(totalStockUnits)} units in stock` : '0 units in stock');
+        setText('inventoryValuation', formatCurrency(inventoryValuation));
+        setText('inventoryAvgPrice', totalStockUnits > 0 ? `${formatCurrency(avgUnitPrice)} avg unit price` : 'Awaiting valuation');
         setText('lowStock', formatInteger(lowStock));
+        setText('outOfStockDetail', `${formatInteger(outOfStockCount)} out of stock`);
+        setText('categoryCount', `${formatInteger(categoryCount)} categories`);
+        setText('topCategoryDetail', `Top: ${topCategoryName} (${formatInteger(topCategoryCount)} units)`);
+
         setText('totalOrders', formatInteger(totalOrders));
+        setText('orderTypesBreakdown', `${formatInteger(sellOrdersCount)} sell · ${formatInteger(purchaseOrdersCount)} purchase`);
         setText('totalSales', formatCurrency(totalSales));
+        setText('avgSalesOrderValue', `${formatCurrency(avgOrderValue)} avg order value`);
         setText('totalPurchases', formatCurrency(totalPurchases));
+        setText('purchasesCountDetail', `${formatInteger(purchaseOrdersCount)} purchase orders`);
         setText('netProfitValue', formatCurrency(netRevenue));
+
+        // Quick navigation badges
+        setText('totalProductsNavBadge', totalProducts !== null ? `${formatInteger(totalProducts)} products` : 'Catalog');
+        setText('totalOrdersNavBadge', totalOrders !== null ? `${formatInteger(totalOrders)} orders` : 'Ledger');
 
         const productTrend = byId('totalProductsTrend');
         if (productTrend) {
             productTrend.className = 'dashboard-kpi-foot ' + (totalProducts === null ? 'text-muted' : 'text-success');
-            productTrend.textContent = totalProducts === null ? 'Unavailable' : 'Live inventory count';
+            productTrend.textContent = totalProducts === null ? 'Unavailable' : 'Live SKU count';
         }
 
         const lowStockTrend = byId('lowStockTrend');
@@ -472,14 +542,14 @@
             lowStockTrend.textContent = lowStock === null
                 ? 'Unavailable'
                 : lowStock > 0
-                    ? 'Needs attention'
-                    : 'No alerts';
+                    ? 'Needs replenishment'
+                    : 'Optimal levels';
         }
 
         const orderTrend = byId('totalOrdersTrend');
         if (orderTrend) {
             orderTrend.className = 'dashboard-kpi-foot ' + (totalOrders === null ? 'text-muted' : 'text-success');
-            orderTrend.textContent = totalOrders === null ? 'Unavailable' : 'Orders visible to your role';
+            orderTrend.textContent = totalOrders === null ? 'Unavailable' : 'Visible transactions';
         }
     }
 
@@ -995,7 +1065,21 @@
             const failures = [productsResult, ordersResult, reportResult].filter(result => result.status === 'rejected');
             const meaningfulFailures = failures.filter(result => !(result.reason && result.reason.name === 'AbortError'));
             if (meaningfulFailures.length > 0 && meaningfulFailures.length === (reportAllowed ? 3 : 2)) {
-                setDashboardState('danger', 'Dashboard data could not be loaded.', true);
+                const fatalError = meaningfulFailures[0]?.reason || new Error('Dashboard data could not be loaded.');
+                if (window.QuickMartErrorBoundary?.mountReactErrorBoundary) {
+                    const target = byId('dashboardState') || document.querySelector('.dashboard-content');
+                    if (target) {
+                        target.classList.remove('d-none');
+                        target.hidden = false;
+                        window.QuickMartErrorBoundary.mountReactErrorBoundary(target, {
+                            moduleName: 'Dashboard',
+                            error: fatalError,
+                            onRetry: () => loadDashboardData(true)
+                        });
+                    }
+                } else {
+                    setDashboardState('danger', 'Dashboard data could not be loaded.', true);
+                }
             } else if (meaningfulFailures.some(result => result.reason && result.reason.status === 401)) {
                 setDashboardState('danger', 'Your session has expired.', false);
             } else if (meaningfulFailures.some(result => result.reason && result.reason.status >= 500)) {
@@ -1041,6 +1125,46 @@
             retryButton.addEventListener('click', retryDashboardData);
         }
 
+        const refreshButton = byId('dashboardRefreshBtn');
+        if (refreshButton) {
+            refreshButton.addEventListener('click', async () => {
+                refreshButton.classList.add('is-syncing');
+                refreshButton.disabled = true;
+                try {
+                    await loadDashboardData(true);
+                    setText('dashboardSyncTime', '· Synced just now');
+                } finally {
+                    refreshButton.classList.remove('is-syncing');
+                    refreshButton.disabled = false;
+                }
+            });
+        }
+
+        // Focus switcher controls
+        const focusItems = [
+            { id: 'focusAllBtn', mode: 'all' },
+            { id: 'focusInventoryBtn', mode: 'inventory' },
+            { id: 'focusOrdersBtn', mode: 'orders' }
+        ];
+
+        focusItems.forEach(({ id, mode }) => {
+            const btn = byId(id);
+            if (!btn) return;
+            btn.addEventListener('click', () => {
+                focusItems.forEach(item => byId(item.id)?.classList.remove('active'));
+                btn.classList.add('active');
+
+                document.body.classList.remove('focus-inventory-mode', 'focus-orders-mode');
+                if (mode === 'inventory') {
+                    document.body.classList.add('focus-inventory-mode');
+                    byId('inventoryMetricsGroup')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } else if (mode === 'orders') {
+                    document.body.classList.add('focus-orders-mode');
+                    byId('orderMetricsGroup')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+
         const printButton = byId('printOrderBtn');
         if (printButton) {
             printButton.addEventListener('click', () => window.print());
@@ -1074,6 +1198,24 @@
 
         loadUserInfo();
         loadDashboardData();
+
+        window.addEventListener('error', (event) => {
+            if (event.error && !event.defaultPrevented) {
+                console.warn('[Dashboard] Unhandled window error captured by React Error Boundary:', event.error);
+                if (window.QuickMartErrorBoundary?.mountReactErrorBoundary) {
+                    const target = byId('dashboardState') || document.querySelector('.dashboard-content');
+                    if (target) {
+                        target.classList.remove('d-none');
+                        target.hidden = false;
+                        window.QuickMartErrorBoundary.mountReactErrorBoundary(target, {
+                            moduleName: 'Dashboard',
+                            error: event.error,
+                            onRetry: () => window.location.reload()
+                        });
+                    }
+                }
+            }
+        });
     }
 
     window.loadDashboardData = loadDashboardData;

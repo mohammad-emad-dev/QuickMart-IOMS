@@ -52,7 +52,9 @@ router.post('/login.php', (request, response) => {
         staff_id: authenticatedUser.staff_id,
         full_name: authenticatedUser.full_name,
         email: authenticatedUser.email,
-        role: authenticatedUser.role
+        role: authenticatedUser.role,
+        session_id: request.session.id,
+        csrf_token: request.session.csrf_token
     }, 'Login successful');
 });
 

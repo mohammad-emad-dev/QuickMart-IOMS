@@ -342,7 +342,7 @@ function createOrderListRow(order) {
     actionCell.dataset.label = 'Action';
     const detailsLink = document.createElement('a');
     detailsLink.className = 'order-view-link';
-    detailsLink.href = `${viewPath('order-details.php')}?id=${encodeURIComponent(textValue(order.Order_ID, ''))}`;
+    detailsLink.href = viewPath('order-details.php', { id: textValue(order.Order_ID, '') });
     detailsLink.setAttribute('aria-label', `View order ${textValue(order.Order_ID, '')}`);
     detailsLink.appendChild(createOrderIcon('eye'));
     const viewText = document.createElement('span');

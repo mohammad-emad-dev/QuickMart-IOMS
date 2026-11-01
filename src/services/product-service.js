@@ -55,15 +55,33 @@ function getProductRecord(productId) {
 }
 
 function createProductRecord(productPayload) {
-    const { name, category, quantity, price, threshold } = productPayload;
-    const numQty = parseInt(quantity, 10);
-    const numPrice = parseFloat(price);
-    const numThreshold = parseInt(threshold, 10);
+    const { name, category, quantity, price, threshold } = productPayload || {};
+
+    const cleanName = String(name || '').trim();
+    const cleanCategory = String(category || '').trim();
+    if (!cleanName || !cleanCategory) {
+        return { status: 'validation_error', message: 'Product name and category cannot be empty.' };
+    }
+
+    const numQty = Number(quantity);
+    if (!Number.isInteger(numQty) || numQty < 0) {
+        return { status: 'validation_error', message: 'Quantity must be a non-negative whole integer.' };
+    }
+
+    const numPrice = Number(price);
+    if (!Number.isFinite(numPrice) || numPrice < 0) {
+        return { status: 'validation_error', message: 'Price must be a valid non-negative number.' };
+    }
+
+    const numThreshold = Number(threshold);
+    if (!Number.isInteger(numThreshold) || numThreshold < 0) {
+        return { status: 'validation_error', message: 'Stock threshold must be a non-negative whole integer.' };
+    }
 
     const newRecord = {
         Product_ID: generateProductId(),
-        Name: String(name).trim(),
-        Category: String(category).trim(),
+        Name: cleanName,
+        Category: cleanCategory,
         Quantity: numQty,
         Price: numPrice.toFixed(2),
         Status: deriveStockStatus(numQty, numThreshold),
@@ -79,15 +97,50 @@ function updateProductRecord(productId, updatePayload) {
         return null;
     }
 
-    const { name, category, quantity, price, threshold } = updatePayload;
-    if (name) targetProduct.Name = String(name).trim();
-    if (category) targetProduct.Category = String(category).trim();
-    if (quantity !== undefined) targetProduct.Quantity = parseInt(quantity, 10);
-    if (price !== undefined) targetProduct.Price = parseFloat(price).toFixed(2);
-    if (threshold !== undefined) targetProduct.Threshold = parseInt(threshold, 10);
+    const { name, category, quantity, price, threshold } = updatePayload || {};
+
+    if (name !== undefined) {
+        const cleanName = String(name).trim();
+        if (!cleanName) {
+            return { status: 'validation_error', message: 'Product name cannot be empty.' };
+        }
+        targetProduct.Name = cleanName;
+    }
+
+    if (category !== undefined) {
+        const cleanCategory = String(category).trim();
+        if (!cleanCategory) {
+            return { status: 'validation_error', message: 'Category cannot be empty.' };
+        }
+        targetProduct.Category = cleanCategory;
+    }
+
+    if (quantity !== undefined) {
+        const numQty = Number(quantity);
+        if (!Number.isInteger(numQty) || numQty < 0) {
+            return { status: 'validation_error', message: 'Quantity must be a non-negative whole integer.' };
+        }
+        targetProduct.Quantity = numQty;
+    }
+
+    if (price !== undefined) {
+        const numPrice = Number(price);
+        if (!Number.isFinite(numPrice) || numPrice < 0) {
+            return { status: 'validation_error', message: 'Price must be a valid non-negative number.' };
+        }
+        targetProduct.Price = numPrice.toFixed(2);
+    }
+
+    if (threshold !== undefined) {
+        const numThreshold = Number(threshold);
+        if (!Number.isInteger(numThreshold) || numThreshold < 0) {
+            return { status: 'validation_error', message: 'Stock threshold must be a non-negative whole integer.' };
+        }
+        targetProduct.Threshold = numThreshold;
+    }
 
     targetProduct.Status = deriveStockStatus(targetProduct.Quantity, targetProduct.Threshold);
-    return targetProduct;
+    return { status: 'ok', product: targetProduct };
 }
 
 // Blocks deletion if the product appears in historical orders to protect ledger consistency

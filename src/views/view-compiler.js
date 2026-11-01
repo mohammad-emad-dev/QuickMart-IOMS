@@ -45,6 +45,7 @@ ${stylesheetPaths.map(sheet => `    <link rel="stylesheet" href="${sheet}">`).jo
 
 function renderScriptLoaderTag(scriptPath) {
     return `    <script src="../../assets/vendor/bootstrap/bootstrap.bundle.min.js?v=bootstrap-5.3.0"></script>
+    <script src="../../dist/js/error-boundary.min.js"></script>
     <script src="../../dist/js/common.min.js"></script>
     <script src="${scriptPath}"></script>
 </body>

@@ -8,18 +8,22 @@ const compiledViews = buildViewCache();
 
 // Direct visitors to the operations dashboard if authenticated, or login screen otherwise
 router.get(['/', '/index.php'], (request, response) => {
+    const sid = request.query.sid || request.query.token;
+    const sidQuery = sid ? `?sid=${encodeURIComponent(sid)}` : '';
     if (request.session && request.session.user) {
-        return response.redirect('/backend/views/dashboard.php');
+        return response.redirect(`/backend/views/dashboard.php${sidQuery}`);
     }
-    return response.redirect('/assets/login-signup/login.html');
+    return response.redirect(`/assets/login-signup/login.html${sidQuery}`);
 });
 
 // Deliver cached views with session enforcement and administrative permission checks
 router.get('/backend/views/:viewName', (request, response) => {
     const { viewName } = request.params;
+    const sid = request.query.sid || request.query.token;
+    const sidQuery = sid ? `?sid=${encodeURIComponent(sid)}` : '';
 
     if (!request.session || !request.session.user) {
-        return response.redirect('../../assets/login-signup/login.html');
+        return response.redirect(`../../assets/login-signup/login.html${sidQuery}`);
     }
 
     // Reports and staff management screens are restricted strictly to administrators

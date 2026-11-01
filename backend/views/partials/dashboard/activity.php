@@ -1,12 +1,12 @@
             <div class="dashboard-content-grid">
-                <section class="dashboard-section dashboard-inventory-section" aria-labelledby="inventoryHealthHeading">
+                <section class="dashboard-section dashboard-inventory-section" id="inventoryActionSection" aria-labelledby="inventoryHealthHeading">
                     <div class="dashboard-section-heading">
                         <div>
-                            <p class="dashboard-section-kicker">Inventory health</p>
-                            <h2 class="dashboard-section-title" id="inventoryHealthHeading">Stock at a glance</h2>
+                            <p class="dashboard-section-kicker">Stock monitoring</p>
+                            <h2 class="dashboard-section-title" id="inventoryHealthHeading">Inventory Watchlist</h2>
                         </div>
                         <a href="products.php" class="dashboard-text-link">
-                            <span>Open products</span>
+                            <span>Open catalog</span>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
                                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                 <path d="M5 12h14m-6-6 6 6-6 6" />
@@ -41,8 +41,8 @@
 
                     <div class="dashboard-list-panel">
                         <div class="dashboard-list-heading">
-                            <span class="dashboard-list-title">Needs attention</span>
-                            <span class="dashboard-list-meta">Low and out-of-stock items</span>
+                            <span class="dashboard-list-title">Needs Attention</span>
+                            <span class="dashboard-list-meta">Items below threshold or depleted</span>
                         </div>
                         <div class="low-stock-list" id="lowStockList">
                             <div class="dashboard-inline-state dashboard-inline-state-loading" role="status"
@@ -54,21 +54,24 @@
                     </div>
                 </section>
 
-                <section class="dashboard-section dashboard-orders-section" aria-labelledby="recentOrdersHeading">
+                <section class="dashboard-section dashboard-orders-section" id="ordersActionSection" aria-labelledby="recentOrdersHeading">
                     <div class="dashboard-section-heading">
                         <div>
-                            <p class="dashboard-section-kicker">Order activity</p>
-                            <h2 class="dashboard-section-title" id="recentOrdersHeading">Recent orders</h2>
+                            <p class="dashboard-section-kicker">Order stream</p>
+                            <h2 class="dashboard-section-title" id="recentOrdersHeading">Recent Transactions</h2>
                         </div>
-                        <button type="button" class="dashboard-text-link dashboard-text-button" data-bs-toggle="modal"
-                            data-bs-target="#allOrdersModal">
-                            <span>View all</span>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-                                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <path d="M5 12h14m-6-6 6 6-6 6" />
-                            </svg>
-                        </button>
+                        <div class="dashboard-orders-controls">
+                            <button type="button" class="dashboard-text-link dashboard-text-button" data-bs-toggle="modal"
+                                data-bs-target="#allOrdersModal">
+                                <span>View all orders</span>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M5 12h14m-6-6 6 6-6 6" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
+
                     <div class="dashboard-table-wrap">
                         <table class="table dashboard-table">
                             <caption class="visually-hidden">Recent orders</caption>

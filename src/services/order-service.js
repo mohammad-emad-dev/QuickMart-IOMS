@@ -121,31 +121,56 @@ function normalizeOrderType(rawType) {
 
 // Pre-validates all order lines before mutating stock to prevent partial writes
 function validateOrderStock(orderType, requestedItems) {
+    if (!Array.isArray(requestedItems) || requestedItems.length === 0) {
+        return { isValid: false, errorMessage: 'At least one item is required.' };
+    }
+
+    const aggregatedDemands = new Map();
+
     for (const item of requestedItems) {
-        const product = findProductById(item.product_id);
+        if (!item || typeof item !== 'object') {
+            return { isValid: false, errorMessage: 'Invalid order item format.' };
+        }
+        const productId = String(item.product_id || '').trim();
+        const product = findProductById(productId);
         if (!product) {
-            return { isValid: false, errorMessage: `Product ${item.product_id} not found.` };
+            return { isValid: false, errorMessage: `Product "${productId}" not found.` };
         }
-        const quantity = parseInt(item.quantity, 10);
-        if (isNaN(quantity) || quantity <= 0) {
-            return { isValid: false, errorMessage: 'Quantity must be greater than zero.' };
+        const quantity = Number(item.quantity);
+        if (!Number.isInteger(quantity) || quantity <= 0) {
+            return { isValid: false, errorMessage: `Quantity for ${product.Name} must be a whole positive number.` };
         }
-        if (orderType === ORDER_TYPE_SELL && product.Quantity < quantity) {
-            return {
-                isValid: false,
-                errorMessage: `Insufficient stock for ${product.Name}. Available: ${product.Quantity}, Requested: ${quantity}`
-            };
+
+        const currentDemand = aggregatedDemands.get(product.Product_ID) || 0;
+        aggregatedDemands.set(product.Product_ID, currentDemand + quantity);
+    }
+
+    if (orderType === ORDER_TYPE_SELL) {
+        for (const [productId, totalRequested] of aggregatedDemands.entries()) {
+            const product = findProductById(productId);
+            if (product.Quantity < totalRequested) {
+                return {
+                    isValid: false,
+                    errorMessage: `Insufficient stock for ${product.Name}. Available: ${product.Quantity}, Total Requested: ${totalRequested}`
+                };
+            }
         }
     }
+
     return { isValid: true };
 }
 
 function createOrderRecord(staffId, orderPayload) {
-    const { order_type: rawType, party_name: partyName, items } = orderPayload;
+    const { order_type: rawType, party_name: partyName, items } = orderPayload || {};
     const normalizedType = normalizeOrderType(rawType);
 
     if (!normalizedType) {
         return { status: 'invalid_type', message: 'Order type must be "Sell" or "Purchase".' };
+    }
+
+    const cleanParty = String(partyName || '').trim();
+    if (!cleanParty) {
+        return { status: 'validation_error', message: 'Party name (customer or supplier) is required.' };
     }
 
     const stockValidation = validateOrderStock(normalizedType, items);
@@ -161,10 +186,10 @@ function createOrderRecord(staffId, orderPayload) {
     // Deduct stock for sell orders or replenish stock for purchases, then capture line items
     for (const item of items) {
         const product = findProductById(item.product_id);
-        const quantity = parseInt(item.quantity, 10);
+        const quantity = Number(item.quantity);
         const unitPrice = parseFloat(product.Price);
-        const lineTotal = quantity * unitPrice;
-        grandTotal += lineTotal;
+        const lineTotal = Math.round(quantity * unitPrice * 100) / 100;
+        grandTotal = Math.round((grandTotal + lineTotal) * 100) / 100;
 
         if (normalizedType === ORDER_TYPE_SELL) {
             product.Quantity -= quantity;
@@ -189,7 +214,7 @@ function createOrderRecord(staffId, orderPayload) {
         Staff_ID: staffId,
         Order_Date: currentDate,
         Order_Type: normalizedType,
-        Party_Name: String(partyName).trim(),
+        Party_Name: cleanParty,
         items: processedItems
     };
 

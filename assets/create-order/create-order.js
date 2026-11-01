@@ -379,7 +379,7 @@ function createRecentOrderRow(order) {
     actionCell.dataset.label = 'Action';
     const link = document.createElement('a');
     link.className = 'view-order-link';
-    link.href = `${viewPath('order-details.php')}?id=${encodeURIComponent(textValue(order.Order_ID, ''))}`;
+    link.href = viewPath('order-details.php', { id: textValue(order.Order_ID, '') });
     link.setAttribute('aria-label', `View order ${textValue(order.Order_ID, '')}`);
     link.append(createIcon('eye'), document.createTextNode('View'));
     actionCell.appendChild(link);

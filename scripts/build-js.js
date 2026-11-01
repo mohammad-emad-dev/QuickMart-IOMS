@@ -41,6 +41,9 @@ async function buildJavaScript() {
         fs.writeFileSync(outputPath, `${result.code}\n`, 'utf8');
         process.stdout.write(`${sourceName} -> ${outputName} (${result.code.length} bytes)\n`);
     }
+
+    const { buildReact } = require('./build-react');
+    await buildReact();
 }
 
 buildJavaScript().catch((error) => {

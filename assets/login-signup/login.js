@@ -327,6 +327,9 @@
                 throw apiError;
             }
 
+            if (data.data && data.data.session_id) {
+                sessionStorage.setItem("qm_session_id", data.data.session_id);
+            }
             storeSessionData(data.data);
             sessionStorage.setItem("isLoggedIn", "true");
             state.redirecting = true;
@@ -335,7 +338,7 @@
 
             window.setTimeout(() => {
                 window.location.href = viewPath("dashboard.php");
-            }, 1500);
+            }, 600);
         } catch (error) {
             const message = error && error.isApiError
                 ? error.message

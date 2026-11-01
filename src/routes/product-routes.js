@@ -43,27 +43,37 @@ router.get('/get.php', requireAuthenticatedUser, (request, response) => {
 router.post('/create.php', requireRole([ROLE_ADMIN, ROLE_MANAGER]), (request, response) => {
     const { name, category, quantity, price, threshold } = request.body || {};
     if (!name || !category || quantity === undefined || price === undefined || threshold === undefined) {
-        return sendError(response, 'All fields are required');
+        return sendError(response, 'All fields are required', 422);
     }
 
     const created = createProductRecord({ name, category, quantity, price, threshold });
+    if (created && created.status === 'validation_error') {
+        return sendError(response, created.message, 422);
+    }
     sendSuccess(response, created, 'Product created successfully');
 });
 
-// Modifying pricing, quantity, or category requires at least Manager privileges
-router.put('/update.php', requireRole([ROLE_ADMIN, ROLE_MANAGER]), (request, response) => {
+// Modifying pricing, quantity, or category requires at least Manager privileges (accepts both POST and PUT)
+router.all('/update.php', requireRole([ROLE_ADMIN, ROLE_MANAGER]), (request, response) => {
+    if (!['POST', 'PUT'].includes(request.method.toUpperCase())) {
+        return sendError(response, 'Method not allowed', 405);
+    }
+
     const { id, product_id, name, category, quantity, price, threshold } = request.body || {};
     const targetId = id || product_id;
     if (!targetId) {
-        return sendError(response, 'Product ID is required');
+        return sendError(response, 'Product ID is required', 422);
     }
 
-    const updated = updateProductRecord(targetId, { name, category, quantity, price, threshold });
-    if (!updated) {
+    const outcome = updateProductRecord(targetId, { name, category, quantity, price, threshold });
+    if (!outcome) {
         return sendError(response, 'Product not found', 404);
     }
+    if (outcome.status === 'validation_error') {
+        return sendError(response, outcome.message, 422);
+    }
 
-    sendSuccess(response, updated, 'Product updated successfully');
+    sendSuccess(response, outcome.product || outcome, 'Product updated successfully');
 });
 
 // router.all supports both DELETE and POST forms sent by legacy client scripts

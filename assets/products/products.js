@@ -49,6 +49,22 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     setAccessNotice();
     loadProductsFromDatabase();
+
+    window.addEventListener('error', (event) => {
+        if (event.error && !event.defaultPrevented) {
+            console.warn('[Products] Unhandled error captured by React Error Boundary:', event.error);
+            if (window.QuickMartErrorBoundary?.mountReactErrorBoundary) {
+                const target = document.querySelector('.table-responsive') || document.querySelector('.card.table-card') || document.querySelector('.main-content');
+                if (target) {
+                    window.QuickMartErrorBoundary.mountReactErrorBoundary(target, {
+                        moduleName: 'Inventory / Products Catalog',
+                        error: event.error,
+                        onRetry: () => window.location.reload()
+                    });
+                }
+            }
+        }
+    });
 });
 
 function createSvgIcon(name, className = '') {
@@ -437,10 +453,21 @@ async function loadProductsFromDatabase() {
             });
         } else {
             setTableStateLabel('Unable to load');
-            renderTableMessage('Could not load products', error.message || 'Check the connection and try again.', {
-                state: 'error',
-                action: { type: 'retry', label: 'Retry loading' }
-            });
+            if (window.QuickMartErrorBoundary?.mountReactErrorBoundary) {
+                const target = document.querySelector('.table-responsive') || document.querySelector('.card.table-card') || document.querySelector('.main-content');
+                if (target) {
+                    window.QuickMartErrorBoundary.mountReactErrorBoundary(target, {
+                        moduleName: 'Inventory / Products Catalog',
+                        error: error,
+                        onRetry: () => loadProductsFromDatabase()
+                    });
+                }
+            } else {
+                renderTableMessage('Could not load products', error.message || 'Check the connection and try again.', {
+                    state: 'error',
+                    action: { type: 'retry', label: 'Retry loading' }
+                });
+            }
         }
 
         if (error.message) notify(error.message, 'error');

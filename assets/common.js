@@ -13,12 +13,54 @@ function apiPath(path) {
     return appPath(`backend/api/${String(path).replace(/^\/+/, '')}`);
 }
 
-function loginPath() {
-    return appPath('assets/login-signup/login.html');
+function getActiveSessionId() {
+    try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlSid = urlParams.get('sid') || urlParams.get('token');
+        if (urlSid) {
+            sessionStorage.setItem('qm_session_id', urlSid);
+            return urlSid;
+        }
+        return sessionStorage.getItem('qm_session_id') || '';
+    } catch (_) {
+        return '';
+    }
 }
 
-function viewPath(path) {
-    return appPath(`backend/views/${String(path).replace(/^\/+/, '')}`);
+function loginPath() {
+    const base = appPath('assets/login-signup/login.html');
+    const sid = getActiveSessionId();
+    return sid ? `${base}?sid=${encodeURIComponent(sid)}` : base;
+}
+
+function viewPath(path, params = {}) {
+    let base = appPath(`backend/views/${String(path).replace(/^\/+/, '')}`);
+    const sid = getActiveSessionId();
+    const query = new URLSearchParams();
+
+    if (base.includes('?')) {
+        const [urlBase, existingQuery] = base.split('?');
+        base = urlBase;
+        const parsed = new URLSearchParams(existingQuery);
+        for (const [key, value] of parsed.entries()) {
+            query.set(key, value);
+        }
+    }
+
+    if (sid) {
+        query.set('sid', sid);
+    }
+
+    if (params && typeof params === 'object') {
+        for (const [key, value] of Object.entries(params)) {
+            if (value !== undefined && value !== null && value !== '') {
+                query.set(key, String(value));
+            }
+        }
+    }
+
+    const queryStr = query.toString();
+    return queryStr ? `${base}?${queryStr}` : base;
 }
 
 // Frontend role visibility is only a usability aid. Every API still enforces
@@ -58,10 +100,23 @@ async function getCsrfToken() {
         return csrfToken;
     }
 
-    const response = await fetch(apiPath('auth/csrf.php'), {
+    const sid = getActiveSessionId();
+    const headers = { 'Accept': 'application/json' };
+    if (sid) {
+        headers['X-Session-ID'] = sid;
+        headers['Authorization'] = `Bearer ${sid}`;
+    }
+
+    let url = apiPath('auth/csrf.php');
+    if (sid) {
+        const separator = url.includes('?') ? '&' : '?';
+        url = `${url}${separator}sid=${encodeURIComponent(sid)}`;
+    }
+
+    const response = await fetch(url, {
         method: 'GET',
         credentials: 'same-origin',
-        headers: { 'Accept': 'application/json' }
+        headers
     });
     const data = await response.json();
 
@@ -78,17 +133,30 @@ async function apiFetch(path, options = {}) {
     const method = String(requestOptions.method || 'GET').toUpperCase();
     const headers = new Headers(requestOptions.headers || {});
 
+    const sid = getActiveSessionId();
+    if (sid) {
+        headers.set('X-Session-ID', sid);
+        headers.set('Authorization', `Bearer ${sid}`);
+    }
+
     if (!skipCsrf && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
         headers.set('X-CSRF-Token', await getCsrfToken());
     }
 
     requestOptions.headers = headers;
     requestOptions.credentials = 'same-origin';
-    return fetch(apiPath(path), requestOptions);
+
+    let url = apiPath(path);
+    if (sid && !url.includes('sid=')) {
+        const separator = url.includes('?') ? '&' : '?';
+        url = `${url}${separator}sid=${encodeURIComponent(sid)}`;
+    }
+
+    return fetch(url, requestOptions);
 }
 
 function clearSessionHint() {
-    ["isLoggedIn", "staffId", "userName", "userEmail", "userRole"].forEach((key) => {
+    ["isLoggedIn", "staffId", "userName", "userEmail", "userRole", "qm_session_id"].forEach((key) => {
         sessionStorage.removeItem(key);
     });
 }
@@ -107,11 +175,23 @@ async function checkSession(options = {}) {
         applyRoleBasedUi(null);
         loadUserInfo();
 
-        sessionProbePromise = fetch(apiPath("auth/session.php"), {
+        const sid = getActiveSessionId();
+        const headers = { Accept: "application/json" };
+        if (sid) {
+            headers["X-Session-ID"] = sid;
+            headers["Authorization"] = `Bearer ${sid}`;
+        }
+        let url = apiPath("auth/session.php");
+        if (sid) {
+            const separator = url.includes('?') ? '&' : '?';
+            url = `${url}${separator}sid=${encodeURIComponent(sid)}`;
+        }
+
+        sessionProbePromise = fetch(url, {
             method: "GET",
             credentials: "same-origin",
             cache: "no-store",
-            headers: { Accept: "application/json" }
+            headers
         }).then(async (response) => {
             let data = null;
             try {
@@ -511,13 +591,34 @@ function capitalizeFirst(str) {
     return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 }
 
+function decorateInternalLinks() {
+    const sid = getActiveSessionId();
+    if (!sid) return;
+
+    document.querySelectorAll('a[href]').forEach((link) => {
+        const href = link.getAttribute('href');
+        if (!href || href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('http://') || href.startsWith('https://') || href.startsWith('mailto:')) {
+            return;
+        }
+        if (href.endsWith('.php') || href.includes('.php?') || href.includes('/views/')) {
+            if (!href.includes('sid=')) {
+                const separator = href.includes('?') ? '&' : '?';
+                link.setAttribute('href', `${href}${separator}sid=${encodeURIComponent(sid)}`);
+            }
+        }
+    });
+}
+
 document.addEventListener("DOMContentLoaded", function () {
+    decorateInternalLinks();
     setupShellContextbar();
     setupShellNavigation();
     const isLoginPage = Boolean(document.getElementById("loginForm"));
     if (!isLoginPage) {
         applyRoleBasedUi(null);
-        checkSession();
+        checkSession().then(() => {
+            decorateInternalLinks();
+        });
     }
     setupLogoutHandler();
 });

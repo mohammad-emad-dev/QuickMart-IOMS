@@ -1669,7 +1669,222 @@ body:has(.main-content) :is(a, button, input, select, textarea, summary):focus-v
 
     body:has(.main-content) :is(.invoice-table th, .reports-table th) {
         color: #10232c;
-        background: #f5f3ec;
         border-color: #d3deda;
     }
 }
+
+/* ==========================================================================
+   React Global Error Boundary Component Styles
+   ========================================================================== */
+
+.qm-error-boundary-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 320px;
+    padding: 32px 16px;
+    margin: 16px 0;
+}
+
+.qm-error-boundary-card {
+    width: min(100%, 780px);
+    background: var(--qm-surface);
+    border: 1px solid rgba(239, 68, 68, 0.32);
+    border-radius: var(--qm-radius-card);
+    padding: 32px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+    animation: qm-fade-in 0.25s ease-out;
+}
+
+@keyframes qm-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.qm-error-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+}
+
+.qm-error-icon-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 48px;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: rgba(239, 68, 68, 0.12);
+    color: var(--qm-danger);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.qm-error-icon-box svg {
+    width: 26px;
+    height: 26px;
+}
+
+.qm-error-titles {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.qm-error-kicker {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--qm-danger);
+    margin-bottom: 4px;
+}
+
+.qm-error-heading {
+    margin: 0 0 8px;
+    font-size: 1.35rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--qm-text);
+}
+
+.qm-error-subtext {
+    margin: 0;
+    font-size: 0.92rem;
+    line-height: 1.6;
+    color: var(--qm-text-muted);
+}
+
+.qm-error-reason-box {
+    margin: 20px 0;
+    padding: 12px 16px;
+    background: var(--qm-surface-subtle);
+    border: 1px solid var(--qm-border);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.qm-error-reason-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--qm-text-faint);
+}
+
+.qm-error-reason-code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    color: #fca5a5;
+    word-break: break-word;
+}
+
+.qm-error-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 24px;
+}
+
+.qm-error-btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 0 20px;
+    font-weight: 700;
+    font-size: 0.88rem;
+    background: var(--qm-amber);
+    border-color: var(--qm-amber);
+    color: #000;
+}
+
+.qm-error-btn-primary:hover {
+    background: var(--qm-amber-strong);
+    border-color: var(--qm-amber-strong);
+    color: #000;
+}
+
+.qm-error-btn-primary svg,
+.qm-error-btn-secondary svg,
+.qm-error-btn-details svg {
+    width: 16px;
+    height: 16px;
+}
+
+.qm-error-btn-secondary,
+.qm-error-btn-details {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 0 16px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--qm-text);
+    background: var(--qm-surface-subtle);
+    border-color: var(--qm-border-strong);
+}
+
+.qm-error-btn-secondary:hover,
+.qm-error-btn-details:hover {
+    color: var(--qm-white);
+    background: var(--qm-surface-strong);
+    border-color: var(--qm-border-strong);
+}
+
+.qm-error-diagnostics-panel {
+    margin-top: 20px;
+    padding: 16px;
+    background: var(--qm-canvas);
+    border: 1px solid var(--qm-border);
+    border-radius: 8px;
+    animation: qm-fade-in 0.2s ease-out;
+}
+
+.qm-error-diagnostics-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.qm-error-diagnostics-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--qm-text-muted);
+}
+
+.qm-copy-diag-btn {
+    font-size: 0.75rem;
+    padding: 3px 10px;
+}
+
+.qm-error-stack-trace {
+    margin: 0;
+    padding: 12px;
+    max-height: 220px;
+    overflow-y: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    line-height: 1.5;
+    color: #cbd5e1;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 6px;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
